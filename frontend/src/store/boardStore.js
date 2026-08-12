@@ -1,14 +1,32 @@
 import { defineStore } from 'pinia'
 import { useAuthStore } from './authStore'
 
+/**
+ * Parse error response dari API dan kembalikan pesan yang user-friendly.
+ * Format response: { message, error, details: [...], status }
+ */
+async function parseApiError(response, fallbackMessage) {
+  try {
+    const body = await response.json()
+    // Gabungkan details jika ada (validasi)
+    if (body.details && body.details.length > 0) {
+      return body.details.join(', ')
+    }
+    return body.message || fallbackMessage
+  } catch {
+    return fallbackMessage
+  }
+}
+
 export const useBoardStore = defineStore('board', {
   state: () => ({
     boards: [],
     loading: false,
     error: null,
-    // Map boardId to columns list
+    // Map boardId to board lists (columns)
     columnsMap: {},
-    nextColumnId: 1000,
+    columnsLoading: false,
+    columnsError: null,
     nextTaskId: 5000
   }),
   getters: {
@@ -16,15 +34,7 @@ export const useBoardStore = defineStore('board', {
       return state.boards.find(b => b.id === Number(id))
     },
     getColumnsByBoardId: (state) => (id) => {
-      if (!state.columnsMap[id]) {
-        // Initialize empty columns for new boards
-        state.columnsMap[id] = [
-          { id: state.nextColumnId++, name: "Backlog", accent: null, tasks: [] },
-          { id: state.nextColumnId++, name: "Sedang Dikerjakan", accent: null, tasks: [] },
-          { id: state.nextColumnId++, name: "Selesai", accent: "success", tasks: [] }
-        ]
-      }
-      return state.columnsMap[id]
+      return state.columnsMap[id] || []
     }
   },
   actions: {
@@ -75,7 +85,7 @@ export const useBoardStore = defineStore('board', {
           body: JSON.stringify({ title: name })
         })
         if (!response.ok) {
-          throw new Error('Gagal membuat board')
+          throw new Error(await parseApiError(response, 'Gagal membuat board'))
         }
         const data = await response.json()
         const newBoard = {
@@ -85,7 +95,6 @@ export const useBoardStore = defineStore('board', {
           doneCount: 0
         }
         this.boards.push(newBoard)
-        this.getColumnsByBoardId(newBoard.id)
         return newBoard.id
       } catch (err) {
         this.error = err.message
@@ -107,7 +116,7 @@ export const useBoardStore = defineStore('board', {
           body: JSON.stringify({ title: name })
         })
         if (!response.ok) {
-          throw new Error('Gagal mengubah board')
+          throw new Error(await parseApiError(response, 'Gagal mengubah board'))
         }
         const data = await response.json()
         const boardIdx = this.boards.findIndex(b => b.id === id)
@@ -129,7 +138,7 @@ export const useBoardStore = defineStore('board', {
           }
         })
         if (!response.ok) {
-          throw new Error('Gagal menghapus board')
+          throw new Error(await parseApiError(response, 'Gagal menghapus board'))
         }
         this.boards = this.boards.filter(b => b.id !== id)
         delete this.columnsMap[id]
@@ -138,16 +147,93 @@ export const useBoardStore = defineStore('board', {
         throw err
       }
     },
-    addColumn(boardId, name) {
-      const columns = this.getColumnsByBoardId(boardId)
-      columns.push({
-        id: this.nextColumnId++,
-        name,
-        accent: null,
-        tasks: []
-      })
-      this.updateBoardCounts(boardId)
+
+    // ============================
+    // Board List (Column) API calls
+    // ============================
+
+    async fetchBoardLists(boardId) {
+      const authStore = useAuthStore()
+      this.columnsLoading = true
+      this.columnsError = null
+      try {
+        const response = await fetch(`/api/boards/${boardId}/lists`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        if (!response.ok) {
+          throw new Error(await parseApiError(response, 'Gagal mengambil data kolom'))
+        }
+        const data = await response.json()
+        // Map API response to column format used by the UI
+        this.columnsMap[boardId] = data
+          .sort((a, b) => a.position - b.position)
+          .map(bl => ({
+            id: bl.id,
+            name: bl.title,
+            position: bl.position,
+            accent: this.detectAccent(bl.title),
+            tasks: []
+          }))
+      } catch (err) {
+        this.columnsError = err.message
+        console.error(err)
+      } finally {
+        this.columnsLoading = false
+      }
     },
+
+    async addColumn(boardId, name, position) {
+      const authStore = useAuthStore()
+      try {
+        const response = await fetch(`/api/boards/${boardId}/lists`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: name,
+            position: position
+          })
+        })
+        if (!response.ok) {
+          throw new Error(await parseApiError(response, 'Gagal membuat kolom baru'))
+        }
+        const data = await response.json()
+        if (!this.columnsMap[boardId]) {
+          this.columnsMap[boardId] = []
+        }
+        this.columnsMap[boardId].push({
+          id: data.id,
+          name: data.title,
+          position: data.position,
+          accent: this.detectAccent(data.title),
+          tasks: []
+        })
+        this.updateBoardCounts(boardId)
+      } catch (err) {
+        console.error(err)
+        throw err
+      }
+    },
+
+    // Helper to auto-detect column accent based on title
+    detectAccent(title) {
+      const lower = (title || '').toLowerCase()
+      if (lower === 'selesai' || lower === 'done' || lower === 'completed') {
+        return 'success'
+      }
+      return null
+    },
+
+    // ============================
+    // Task operations (still local for now)
+    // ============================
+
     addTask(boardId, columnId, task) {
       const columns = this.getColumnsByBoardId(boardId)
       const column = columns.find(c => c.id === columnId)

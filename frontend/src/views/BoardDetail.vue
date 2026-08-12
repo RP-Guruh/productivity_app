@@ -50,23 +50,44 @@
     <!-- Kanban Area -->
     <main class="kanban-container">
       <div class="kanban-columns-scroll">
-        <!-- Columns list -->
-        <BoardColumn
-          v-for="col in columns"
-          :key="col.id"
-          :column="col"
-          @add-task="openAddTaskModal"
-          @edit-task="openEditTaskModal"
-          @task-moved="handleTaskMoved"
-        />
-
-        <!-- Add Column dashed card -->
-        <div class="add-column-card" @click="openAddColumnModal" role="button" tabindex="0" @keydown.enter="openAddColumnModal">
-          <div class="add-column-card__content">
-            <span class="add-column-card__icon">+</span>
-            <span class="add-column-card__text">Tambah kolom</span>
+        <!-- Loading skeleton -->
+        <template v-if="boardStore.columnsLoading">
+          <div v-for="i in 3" :key="'skel-'+i" class="column-skeleton">
+            <div class="column-skeleton__header"></div>
+            <div class="column-skeleton__card"></div>
+            <div class="column-skeleton__card column-skeleton__card--short"></div>
           </div>
-        </div>
+        </template>
+
+        <!-- Empty State -->
+        <template v-else-if="columns.length === 0">
+          <div class="kanban-empty-state">
+            <div class="kanban-empty-state__icon">📋</div>
+            <h3 class="kanban-empty-state__title">Belum ada kolom</h3>
+            <p class="kanban-empty-state__desc">Buat kolom pertamamu untuk mulai mengatur task.</p>
+            <AppButton variant="primary" @click="openAddColumnModal">+ Tambah Kolom</AppButton>
+          </div>
+        </template>
+
+        <!-- Columns list -->
+        <template v-else>
+          <BoardColumn
+            v-for="col in columns"
+            :key="col.id"
+            :column="col"
+            @add-task="openAddTaskModal"
+            @edit-task="openEditTaskModal"
+            @task-moved="handleTaskMoved"
+          />
+
+          <!-- Add Column dashed card -->
+          <div class="add-column-card" @click="openAddColumnModal" role="button" tabindex="0" @keydown.enter="openAddColumnModal">
+            <div class="add-column-card__content">
+              <span class="add-column-card__icon">+</span>
+              <span class="add-column-card__text">Tambah kolom</span>
+            </div>
+          </div>
+        </template>
       </div>
     </main>
 
@@ -94,12 +115,21 @@
           label="Nama Kolom"
           v-model="newColumnName"
           placeholder="Contoh: Backlog, Peninjauan..."
-          @keydown.enter="createColumn"
         />
+        <div class="form-group">
+          <label class="form-label">Posisi</label>
+          <input
+            type="number"
+            class="form-input"
+            v-model.number="newColumnPosition"
+            min="1"
+            @keydown.enter="createColumn"
+          />
+        </div>
       </div>
       <template #footer>
         <AppButton variant="secondary" @click="closeColumnModal">Batal</AppButton>
-        <AppButton variant="primary" :disabled="!newColumnName.trim()" @click="createColumn">Tambah</AppButton>
+        <AppButton variant="primary" :disabled="!newColumnName.trim() || !newColumnPosition" @click="createColumn">Tambah</AppButton>
       </template>
     </AppModal>
 
@@ -203,6 +233,7 @@ const isAiModalOpen = ref(false)
 
 const isColumnModalOpen = ref(false)
 const newColumnName = ref('')
+const newColumnPosition = ref(1)
 
 onMounted(async () => {
   if (boardStore.boards.length === 0) {
@@ -210,7 +241,10 @@ onMounted(async () => {
   }
   if (!board.value) {
     router.push('/')
+    return
   }
+  // Fetch board lists (columns) from API
+  await boardStore.fetchBoardLists(boardId.value)
 })
 
 const goBack = () => {
@@ -277,6 +311,11 @@ const addAiTasks = (taskTitles) => {
 
 const openAddColumnModal = () => {
   newColumnName.value = ''
+  // Default posisi = jumlah kolom saat ini + 1
+  const currentColumns = boardStore.getColumnsByBoardId(boardId.value)
+  newColumnPosition.value = currentColumns.length > 0
+    ? Math.max(...currentColumns.map(c => c.position || 0)) + 1
+    : 1
   isColumnModalOpen.value = true
 }
 
@@ -284,10 +323,14 @@ const closeColumnModal = () => {
   isColumnModalOpen.value = false
 }
 
-const createColumn = () => {
-  if (!newColumnName.value.trim()) return
-  boardStore.addColumn(boardId.value, newColumnName.value)
-  closeColumnModal()
+const createColumn = async () => {
+  if (!newColumnName.value.trim() || !newColumnPosition.value) return
+  try {
+    await boardStore.addColumn(boardId.value, newColumnName.value, newColumnPosition.value)
+    closeColumnModal()
+  } catch (err) {
+    alert('Gagal membuat kolom: ' + err.message)
+  }
 }
 </script>
 
@@ -417,6 +460,38 @@ const createColumn = () => {
   padding: 8px 0;
 }
 
+.form-group {
+  margin-top: 16px;
+}
+
+.form-label {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--color-ink);
+  background-color: var(--color-paper);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgba(62, 76, 138, 0.1);
+}
+
 .user-menu {
   display: flex;
   align-items: center;
@@ -514,5 +589,79 @@ const createColumn = () => {
 .save-btn:hover {
   background-color: rgba(40, 167, 69, 0.1);
   color: #28a745;
+}
+
+/* Column Loading Skeleton */
+.column-skeleton {
+  width: 300px;
+  min-width: 300px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  background-color: var(--color-paper);
+}
+
+.column-skeleton__header {
+  height: 24px;
+  width: 60%;
+  background: linear-gradient(90deg, var(--color-border) 25%, rgba(255,255,255,0.15) 50%, var(--color-border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+  margin-bottom: 20px;
+}
+
+.column-skeleton__card {
+  height: 72px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--color-border) 25%, rgba(255,255,255,0.15) 50%, var(--color-border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}
+
+.column-skeleton__card--short {
+  height: 56px;
+  width: 80%;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Kanban Empty State */
+.kanban-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 64px 32px;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.kanban-empty-state__icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.kanban-empty-state__title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-ink);
+  margin-bottom: 8px;
+}
+
+.kanban-empty-state__desc {
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  color: var(--color-muted);
+  margin-bottom: 24px;
+  line-height: 1.5;
 }
 </style>
