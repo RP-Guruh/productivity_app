@@ -1,9 +1,7 @@
 package id.guruh.taskflowai.taskmanagement.board_list;
 
-import id.guruh.taskflowai.identity.User;
 import id.guruh.taskflowai.taskmanagement.board.Board;
 import id.guruh.taskflowai.taskmanagement.board.BoardRepository;
-import id.guruh.taskflowai.taskmanagement.board.dto.BoardResponse;
 import id.guruh.taskflowai.taskmanagement.board_list.dto.BoardListRequest;
 import id.guruh.taskflowai.taskmanagement.board_list.dto.BoardListResponse;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +35,27 @@ public class BoardListService {
 
         boardListRepository.save(boardList);
         return toResponse(boardList);
+    }
+
+    public BoardListResponse update(Long id, BoardListRequest request, String email) {
+        BoardList boardList = boardListRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Kolom tidak ditemukan"
+                ));
+        boardList.setTitle(request.getTitle());
+        boardList.setPosition(request.getPosition());
+        boardListRepository.save(boardList);
+        return toResponse(boardList);
+    }
+
+    public void destroy(Long id){
+        BoardList boardList = boardListRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Kolom tidak ditemukan"
+                ));
+        boardListRepository.delete(boardList);
     }
 
 

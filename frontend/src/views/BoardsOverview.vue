@@ -6,7 +6,10 @@
         <span class="logo-icon">🌊</span>
         <h1 class="logo-text">TaskFlow</h1>
       </div>
-      <div class="header-actions">
+      
+      <!-- Desktop Header Actions -->
+      <div class="header-actions desktop-only">
+        <ThemeToggle />
         <AppButton variant="primary" size="sm" @click="openCreateBoardModal">
           + Board Baru
         </AppButton>
@@ -16,6 +19,35 @@
             <span class="header-username">{{ authStore.user.name }}</span>
           </router-link>
           <AppButton variant="danger" size="sm" @click="authStore.logout">
+            Logout
+          </AppButton>
+        </div>
+      </div>
+
+      <!-- Mobile Hamburger Button -->
+      <button class="hamburger-btn mobile-only" @click="toggleMenu" :class="{ 'is-open': isMenuOpen }" aria-label="Menu">
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+      </button>
+
+      <!-- Mobile Menu Dropdown -->
+      <div class="mobile-menu-dropdown" :class="{ 'is-open': isMenuOpen }">
+        <div class="mobile-menu-content">
+          <div class="mobile-user-info" v-if="authStore.user">
+            <router-link to="/profile" class="profile-link" @click="isMenuOpen = false">
+              <AppAvatar :name="authStore.user.name" size="sm" />
+              <span class="header-username">{{ authStore.user.name }}</span>
+            </router-link>
+          </div>
+          <div class="mobile-menu-item">
+            <span class="mobile-menu-label">Tema</span>
+            <ThemeToggle />
+          </div>
+          <AppButton variant="primary" style="width: 100%; margin-top: 8px;" @click="triggerCreateBoard">
+            + Board Baru
+          </AppButton>
+          <AppButton variant="danger" style="width: 100%; margin-top: 12px;" @click="triggerLogout" v-if="authStore.user">
             Logout
           </AppButton>
         </div>
@@ -87,6 +119,7 @@ import AppModal from '../components/common/AppModal.vue'
 import EmptyState from '../components/common/EmptyState.vue'
 import BoardCard from '../components/board/BoardCard.vue'
 import AppAvatar from '../components/common/AppAvatar.vue'
+import ThemeToggle from '../components/common/ThemeToggle.vue'
 
 const router = useRouter()
 const boardStore = useBoardStore()
@@ -94,6 +127,21 @@ const authStore = useAuthStore()
 
 const isCreateModalOpen = ref(false)
 const newBoardName = ref('')
+const isMenuOpen = ref(false)
+
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value
+}
+
+const triggerCreateBoard = () => {
+  isMenuOpen.value = false
+  openCreateBoardModal()
+}
+
+const triggerLogout = () => {
+  isMenuOpen.value = false
+  authStore.logout()
+}
 
 onMounted(() => {
   boardStore.fetchBoards()
@@ -264,5 +312,104 @@ const navigateToBoard = (id) => {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: 'Inter', sans-serif;
+}
+
+.mobile-only {
+  display: none !important;
+}
+
+.hamburger-btn {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  cursor: pointer;
+  z-index: 101;
+  padding: 0;
+}
+
+.hamburger-bar {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background-color: var(--color-ink);
+  border-radius: 999px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hamburger-btn.is-open .hamburger-bar:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.hamburger-btn.is-open .hamburger-bar:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-btn.is-open .hamburger-bar:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+.mobile-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background-color: var(--color-panel);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease-in-out;
+  z-index: 100;
+}
+
+.mobile-menu-dropdown.is-open {
+  max-height: 350px;
+}
+
+.mobile-menu-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mobile-user-info {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 16px;
+}
+
+.mobile-menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+}
+
+.mobile-menu-label {
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 16px 20px;
+    position: relative;
+  }
+  .desktop-only {
+    display: none !important;
+  }
+  .mobile-only {
+    display: flex !important;
+  }
+  .overview-content {
+    padding: 24px 20px;
+  }
 }
 </style>

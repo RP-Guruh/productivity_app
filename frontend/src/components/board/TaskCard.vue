@@ -54,7 +54,7 @@ const formatDate = (dateStr) => {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 16px;
-  cursor: pointer;
+  cursor: grab;
   transition: all 150ms ease-out;
   display: flex;
   flex-direction: column;
@@ -63,6 +63,10 @@ const formatDate = (dateStr) => {
   /* Clip top-right corner by 14px */
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
   user-select: none;
+}
+
+.task-card:active {
+  cursor: grabbing;
 }
 
 .task-card:hover {
@@ -130,9 +134,4 @@ const formatDate = (dateStr) => {
   flex-grow: 1;
 }
 
-/* Styling during dragging class applied by vuedraggable */
-.sortable-ghost {
-  opacity: 0.4;
-  transform: rotate(2deg);
-}
 </style>

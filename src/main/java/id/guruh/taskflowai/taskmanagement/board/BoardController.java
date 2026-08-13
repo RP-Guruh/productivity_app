@@ -2,6 +2,9 @@ package id.guruh.taskflowai.taskmanagement.board;
 
 import id.guruh.taskflowai.taskmanagement.board.dto.BoardRequest;
 import id.guruh.taskflowai.taskmanagement.board.dto.BoardResponse;
+import id.guruh.taskflowai.taskmanagement.board_list.BoardListService;
+import id.guruh.taskflowai.taskmanagement.board_list.dto.BoardListRequest;
+import id.guruh.taskflowai.taskmanagement.board_list.dto.BoardListResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +19,7 @@ import java.util.List;
 public class BoardController {
 
     private final BoardService boardService;
+    private final BoardListService boardListService;
 
     @GetMapping
     public ResponseEntity<List<BoardResponse>> getAllByCurrentUser(Authentication authentication) {

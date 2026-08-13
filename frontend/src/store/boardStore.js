@@ -220,6 +220,59 @@ export const useBoardStore = defineStore('board', {
         throw err
       }
     },
+    async updateColumn(boardId, columnId, name, position) {
+      const authStore = useAuthStore()
+      try {
+        const response = await fetch(`/api/boards/${boardId}/lists/${columnId}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: name,
+            position: position
+          })
+        })
+        if (!response.ok) {
+          throw new Error(await parseApiError(response, 'Gagal memperbarui kolom'))
+        }
+        const data = await response.json()
+        if (this.columnsMap[boardId]) {
+          const col = this.columnsMap[boardId].find(c => c.id === columnId)
+          if (col) {
+            col.name = data.title
+            col.position = data.position
+            col.accent = this.detectAccent(data.title)
+          }
+          this.columnsMap[boardId].sort((a, b) => a.position - b.position)
+        }
+      } catch (err) {
+        console.error(err)
+        throw err
+      }
+    },
+    async deleteColumn(boardId, columnId) {
+      const authStore = useAuthStore()
+      try {
+        const response = await fetch(`/api/boards/${boardId}/lists/${columnId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`
+          }
+        })
+        if (!response.ok) {
+          throw new Error(await parseApiError(response, 'Gagal menghapus kolom'))
+        }
+        if (this.columnsMap[boardId]) {
+          this.columnsMap[boardId] = this.columnsMap[boardId].filter(c => c.id !== columnId)
+        }
+        this.updateBoardCounts(boardId)
+      } catch (err) {
+        console.error(err)
+        throw err
+      }
+    },
 
     // Helper to auto-detect column accent based on title
     detectAccent(title) {

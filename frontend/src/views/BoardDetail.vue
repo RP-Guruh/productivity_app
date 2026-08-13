@@ -34,13 +34,40 @@
           </button>
         </div>
       </div>
-      <div class="header-right">
+      <div class="header-right desktop-only">
+        <ThemeToggle style="margin-right: 12px;" />
         <div class="user-menu" v-if="authStore.user">
           <router-link to="/profile" class="profile-link" title="Lihat Profil">
             <AppAvatar :name="authStore.user.name" size="sm" />
             <span class="header-username">{{ authStore.user.name }}</span>
           </router-link>
           <AppButton variant="danger" size="sm" @click="authStore.logout">
+            Logout
+          </AppButton>
+        </div>
+      </div>
+
+      <!-- Mobile Hamburger Button -->
+      <button class="hamburger-btn mobile-only" @click="toggleMenu" :class="{ 'is-open': isMenuOpen }" aria-label="Menu">
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+      </button>
+
+      <!-- Mobile Menu Dropdown -->
+      <div class="mobile-menu-dropdown" :class="{ 'is-open': isMenuOpen }">
+        <div class="mobile-menu-content">
+          <div class="mobile-user-info" v-if="authStore.user">
+            <router-link to="/profile" class="profile-link" @click="isMenuOpen = false">
+              <AppAvatar :name="authStore.user.name" size="sm" />
+              <span class="header-username">{{ authStore.user.name }}</span>
+            </router-link>
+          </div>
+          <div class="mobile-menu-item">
+            <span class="mobile-menu-label">Tema</span>
+            <ThemeToggle />
+          </div>
+          <AppButton variant="danger" style="width: 100%; margin-top: 8px;" @click="triggerLogout" v-if="authStore.user">
             Logout
           </AppButton>
         </div>
@@ -71,14 +98,27 @@
 
         <!-- Columns list -->
         <template v-else>
-          <BoardColumn
-            v-for="col in columns"
-            :key="col.id"
-            :column="col"
-            @add-task="openAddTaskModal"
-            @edit-task="openEditTaskModal"
-            @task-moved="handleTaskMoved"
-          />
+          <draggable
+            v-model="localColumns"
+            group="columns"
+            item-key="id"
+            class="kanban-columns-draggable"
+            ghost-class="sortable-ghost"
+            drag-class="sortable-drag"
+            :animation="200"
+            @change="handleColumnMoved"
+          >
+            <template #item="{ element }">
+              <BoardColumn
+                :column="element"
+                @add-task="openAddTaskModal"
+                @edit-task="openEditTaskModal"
+                @task-moved="handleTaskMoved"
+                @update-column="handleUpdateColumn"
+                @delete-column="handleDeleteColumn"
+              />
+            </template>
+          </draggable>
 
           <!-- Add Column dashed card -->
           <div class="add-column-card" @click="openAddColumnModal" role="button" tabindex="0" @keydown.enter="openAddColumnModal">
@@ -163,6 +203,8 @@ import BoardColumn from '../components/board/BoardColumn.vue'
 import TaskModal from '../components/board/TaskModal.vue'
 import AiAssistantModal from '../components/board/AiAssistantModal.vue'
 import AppAvatar from '../components/common/AppAvatar.vue'
+import ThemeToggle from '../components/common/ThemeToggle.vue'
+import draggable from 'vuedraggable'
 
 const route = useRoute()
 const router = useRouter()
@@ -173,11 +215,61 @@ const boardId = computed(() => Number(route.params.id))
 const board = computed(() => boardStore.getBoardById(boardId.value))
 const columns = computed(() => boardStore.getColumnsByBoardId(boardId.value))
 
+const localColumns = computed({
+  get() {
+    return columns.value
+  },
+  set(val) {
+    boardStore.columnsMap[boardId.value] = val
+  }
+})
+
+const handleColumnMoved = async () => {
+  const updatedColumns = localColumns.value
+  for (let i = 0; i < updatedColumns.length; i++) {
+    const col = updatedColumns[i]
+    const newPos = i + 1
+    if (col.position !== newPos) {
+      try {
+        await boardStore.updateColumn(boardId.value, col.id, col.name, newPos)
+      } catch (err) {
+        console.error('Gagal memperbarui posisi kolom:', err)
+      }
+    }
+  }
+}
+
+const handleUpdateColumn = async ({ columnId, name, position }) => {
+  try {
+    await boardStore.updateColumn(boardId.value, columnId, name, position)
+  } catch (err) {
+    alert('Gagal memperbarui nama kolom: ' + err.message)
+  }
+}
+
+const handleDeleteColumn = async (columnId) => {
+  try {
+    await boardStore.deleteColumn(boardId.value, columnId)
+  } catch (err) {
+    alert('Gagal menghapus kolom: ' + err.message)
+  }
+}
+
 // Board title editing & delete state
 const isEditingName = ref(false)
 const editedBoardName = ref('')
 const nameInputRef = ref(null)
 const isDeleteModalOpen = ref(false)
+const isMenuOpen = ref(false)
+
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value
+}
+
+const triggerLogout = () => {
+  isMenuOpen.value = false
+  authStore.logout()
+}
 
 const startEditName = () => {
   if (!board.value) return
@@ -417,6 +509,27 @@ const createColumn = async () => {
   align-items: flex-start;
 }
 
+.kanban-columns-draggable {
+  display: flex;
+  gap: 24px;
+  height: 100%;
+  align-items: flex-start;
+}
+
+.kanban-columns-draggable :deep(.sortable-ghost) {
+  opacity: 0.25 !important;
+  background-color: var(--color-border) !important;
+  border: 1px dashed var(--color-muted) !important;
+  box-shadow: none !important;
+}
+
+.kanban-columns-draggable :deep(.sortable-drag) {
+  opacity: 0.95 !important;
+  transform: rotate(2deg) scale(1.02) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1) !important;
+  cursor: grabbing !important;
+}
+
 /* Add Column card style */
 .add-column-card {
   border: 2px dashed var(--color-border);
@@ -490,6 +603,12 @@ const createColumn = async () => {
 .form-input:focus {
   border-color: var(--color-brand);
   box-shadow: 0 0 0 3px rgba(62, 76, 138, 0.1);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .user-menu {
@@ -663,5 +782,152 @@ const createColumn = async () => {
   color: var(--color-muted);
   margin-bottom: 24px;
   line-height: 1.5;
+}
+
+.mobile-only {
+  display: none !important;
+}
+
+.hamburger-btn {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  cursor: pointer;
+  z-index: 101;
+  padding: 0;
+}
+
+.hamburger-bar {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background-color: var(--color-ink);
+  border-radius: 999px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hamburger-btn.is-open .hamburger-bar:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.hamburger-btn.is-open .hamburger-bar:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-btn.is-open .hamburger-bar:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+.mobile-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background-color: var(--color-panel);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease-in-out;
+  z-index: 100;
+}
+
+.mobile-menu-dropdown.is-open {
+  max-height: 300px;
+}
+
+.mobile-menu-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mobile-user-info {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 16px;
+}
+
+.mobile-menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Inter', sans-serif;
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+}
+
+.mobile-menu-label {
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 12px 16px;
+    position: relative;
+    display: flex;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+  .desktop-only {
+    display: none !important;
+  }
+  .mobile-only {
+    display: flex !important;
+  }
+  .kanban-container {
+    padding: 16px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .kanban-columns-scroll {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+    width: 100%;
+  }
+  .kanban-columns-draggable {
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    gap: 20px;
+  }
+  .kanban-columns-draggable :deep(.board-column) {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-height: 450px;
+  }
+  .add-column-card {
+    width: 100% !important;
+    min-width: 100% !important;
+    height: 100px;
+  }
+  .ai-floating-button {
+    bottom: 16px;
+    right: 16px;
+    padding: 10px 16px;
+    font-size: var(--text-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .header-left {
+    flex-grow: 1;
+    margin-right: 12px;
+  }
+  .board-name {
+    font-size: var(--text-base);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 </style>
