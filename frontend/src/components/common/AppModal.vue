@@ -130,7 +130,7 @@ onUnmounted(() => {
 
 .modal-close-btn:hover {
   color: var(--color-ink);
-  background-color: rgba(27, 31, 59, 0.05);
+  background-color: var(--color-border);
 }
 
 .modal-content {

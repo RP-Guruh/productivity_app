@@ -360,21 +360,46 @@ const closeTaskModal = () => {
   isTaskModalOpen.value = false
 }
 
-const saveTask = (taskData) => {
-  if (isEditTask.value) {
-    boardStore.updateTask(boardId.value, taskData.id, taskData)
-  } else {
-    boardStore.addTask(boardId.value, targetColumnId.value, taskData)
+const saveTask = async (taskData) => {
+  try {
+    if (isEditTask.value) {
+      await boardStore.updateTask(boardId.value, taskData.id, taskData)
+    } else {
+      await boardStore.addTask(boardId.value, targetColumnId.value, taskData)
+    }
+    closeTaskModal()
+  } catch (err) {
+    alert('Gagal menyimpan task: ' + err.message)
   }
-  closeTaskModal()
 }
 
-const deleteTask = (taskId) => {
-  boardStore.deleteTask(boardId.value, taskId)
-  closeTaskModal()
+const deleteTask = async (taskId) => {
+  try {
+    await boardStore.deleteTask(boardId.value, taskId)
+    closeTaskModal()
+  } catch (err) {
+    alert('Gagal menghapus task: ' + err.message)
+  }
 }
 
-const handleTaskMoved = () => {
+const handleTaskMoved = async ({ columnId, event }) => {
+  if (event.added) {
+    const task = event.added.element
+    const newPos = event.added.newIndex + 1
+    try {
+      await boardStore.moveTask(boardId.value, task.id, columnId, newPos)
+    } catch (err) {
+      alert('Gagal memindahkan task: ' + err.message)
+    }
+  } else if (event.moved) {
+    const task = event.moved.element
+    const newPos = event.moved.newIndex + 1
+    try {
+      await boardStore.moveTask(boardId.value, task.id, columnId, newPos)
+    } catch (err) {
+      alert('Gagal memindahkan task: ' + err.message)
+    }
+  }
   boardStore.updateBoardCounts(boardId.value)
 }
 
@@ -386,18 +411,21 @@ const closeAiModal = () => {
   isAiModalOpen.value = false
 }
 
-const addAiTasks = (taskTitles) => {
-  // Add AI generated tasks to first column (usually Backlog)
+const addAiTasks = async (taskTitles) => {
   if (columns.value.length > 0) {
     const firstColId = columns.value[0].id
-    taskTitles.forEach(title => {
-      boardStore.addTask(boardId.value, firstColId, {
-        title,
-        description: 'Disusun secara otomatis oleh AI Assistant.',
-        priority: 'sedang',
-        dueDate: null
-      })
-    })
+    for (const title of taskTitles) {
+      try {
+        await boardStore.addTask(boardId.value, firstColId, {
+          title,
+          description: 'Disusun secara otomatis oleh AI Assistant.',
+          priority: 'sedang',
+          dueDate: null
+        })
+      } catch (err) {
+        console.error('Gagal menambahkan AI task:', err)
+      }
+    }
   }
 }
 

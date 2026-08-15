@@ -169,7 +169,7 @@ export const useBoardStore = defineStore('board', {
         }
         const data = await response.json()
         // Map API response to column format used by the UI
-        this.columnsMap[boardId] = data
+        const columns = data
           .sort((a, b) => a.position - b.position)
           .map(bl => ({
             id: bl.id,
@@ -178,6 +178,37 @@ export const useBoardStore = defineStore('board', {
             accent: this.detectAccent(bl.title),
             tasks: []
           }))
+
+        // Fetch tasks for each column
+        await Promise.all(columns.map(async col => {
+          try {
+            const taskRes = await fetch(`/api/tasks/board-list/${col.id}`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${authStore.token}`,
+                'Content-Type': 'application/json'
+              }
+            })
+            if (taskRes.ok) {
+              const tasksData = await taskRes.ok ? await taskRes.json() : []
+              col.tasks = tasksData
+                .sort((a, b) => (a.position || 0) - (b.position || 0))
+                .map(t => ({
+                  id: t.id,
+                  title: t.title,
+                  description: t.desc || '',
+                  priority: this.mapPriorityToFrontend(t.priority),
+                  dueDate: t.dueDate ? t.dueDate.split('T')[0] : null,
+                  position: t.position
+                }))
+            }
+          } catch (err) {
+            console.error(`Gagal mengambil task untuk kolom ${col.id}:`, err)
+          }
+        }))
+
+        this.columnsMap[boardId] = columns
+        this.updateBoardCounts(boardId)
       } catch (err) {
         this.columnsError = err.message
         console.error(err)
@@ -283,48 +314,225 @@ export const useBoardStore = defineStore('board', {
       return null
     },
 
+    // Priority level mapping helpers
+    mapPriorityToFrontend(p) {
+      if (!p) return 'rendah'
+      const lower = p.toLowerCase()
+      if (lower === 'high' || lower === 'tinggi') return 'tinggi'
+      if (lower === 'medium' || lower === 'sedang') return 'sedang'
+      return 'rendah'
+    },
+    mapPriorityToBackend(p) {
+      if (!p) return 'LOW'
+      const lower = p.toLowerCase()
+      if (lower === 'tinggi' || lower === 'high') return 'HIGH'
+      if (lower === 'sedang' || lower === 'medium') return 'MEDIUM'
+      return 'LOW'
+    },
+
     // ============================
-    // Task operations (still local for now)
+    // Task operations (Integrated with Backend API)
     // ============================
 
-    addTask(boardId, columnId, task) {
-      const columns = this.getColumnsByBoardId(boardId)
-      const column = columns.find(c => c.id === columnId)
-      if (column) {
-        column.tasks.push({
-          id: this.nextTaskId++,
+    async addTask(boardId, columnId, task) {
+      const authStore = useAuthStore()
+      try {
+        const payload = {
+          boardListId: columnId,
           title: task.title || "Task Baru",
-          description: task.description || "",
-          priority: task.priority || "rendah",
-          dueDate: task.dueDate || null
+          desc: task.description || "",
+          priority: this.mapPriorityToBackend(task.priority),
+          dueDate: task.dueDate ? `${task.dueDate}T00:00:00` : null,
+          position: task.position || null
+        }
+        const response = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
         })
-        this.updateBoardCounts(boardId)
+        if (!response.ok) {
+          throw new Error(await parseApiError(response, 'Gagal membuat task baru'))
+        }
+        const data = await response.json()
+        const columns = this.getColumnsByBoardId(boardId)
+        const column = columns.find(c => c.id === columnId)
+        if (column) {
+          column.tasks.push({
+            id: data.id,
+            title: data.title,
+            description: data.desc || "",
+            priority: this.mapPriorityToFrontend(data.priority),
+            dueDate: data.dueDate ? data.dueDate.split('T')[0] : null,
+            position: data.position
+          })
+          this.updateBoardCounts(boardId)
+        }
+      } catch (err) {
+        console.error(err)
+        throw err
       }
     },
-    updateTask(boardId, taskId, updatedFields) {
-      const columns = this.getColumnsByBoardId(boardId)
-      for (const col of columns) {
-        const taskIdx = col.tasks.findIndex(t => t.id === taskId)
-        if (taskIdx !== -1) {
-          col.tasks[taskIdx] = {
-            ...col.tasks[taskIdx],
-            ...updatedFields
+    async updateTask(boardId, taskId, updatedFields) {
+      const authStore = useAuthStore()
+      try {
+        const columns = this.getColumnsByBoardId(boardId)
+        let existingTask = null
+        let currentColumnId = null
+        for (const col of columns) {
+          const t = col.tasks.find(x => x.id === taskId)
+          if (t) {
+            existingTask = t
+            currentColumnId = col.id
+            break
           }
-          break
         }
+        if (!existingTask) throw new Error('Task tidak ditemukan')
+
+        const title = updatedFields.title !== undefined ? updatedFields.title : existingTask.title
+        const description = updatedFields.description !== undefined ? updatedFields.description : existingTask.description
+        const priority = updatedFields.priority !== undefined ? updatedFields.priority : existingTask.priority
+        const dueDate = updatedFields.dueDate !== undefined ? updatedFields.dueDate : existingTask.dueDate
+        const position = updatedFields.position !== undefined ? updatedFields.position : existingTask.position
+
+        const payload = {
+          boardListId: currentColumnId,
+          title: title,
+          desc: description || "",
+          priority: this.mapPriorityToBackend(priority),
+          dueDate: dueDate ? (dueDate.includes('T') ? dueDate : `${dueDate}T00:00:00`) : null,
+          position: position || null
+        }
+
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) {
+          throw new Error(await parseApiError(response, 'Gagal memperbarui task'))
+        }
+        const data = await response.json()
+        
+        // Update local state
+        for (const col of columns) {
+          const idx = col.tasks.findIndex(t => t.id === taskId)
+          if (idx !== -1) {
+            col.tasks[idx] = {
+              id: data.id,
+              title: data.title,
+              description: data.desc || "",
+              priority: this.mapPriorityToFrontend(data.priority),
+              dueDate: data.dueDate ? data.dueDate.split('T')[0] : null,
+              position: data.position
+            }
+            break
+          }
+        }
+        this.updateBoardCounts(boardId)
+      } catch (err) {
+        console.error(err)
+        throw err
       }
-      this.updateBoardCounts(boardId)
     },
-    deleteTask(boardId, taskId) {
-      const columns = this.getColumnsByBoardId(boardId)
-      for (const col of columns) {
-        const taskIdx = col.tasks.findIndex(t => t.id === taskId)
-        if (taskIdx !== -1) {
-          col.tasks.splice(taskIdx, 1)
-          break
+    async moveTask(boardId, taskId, targetColumnId, targetPosition) {
+      const authStore = useAuthStore()
+      try {
+        const columns = this.getColumnsByBoardId(boardId)
+        let existingTask = null
+        for (const col of columns) {
+          const t = col.tasks.find(x => x.id === taskId)
+          if (t) {
+            existingTask = t
+            break
+          }
         }
+        if (!existingTask) throw new Error('Task tidak ditemukan')
+
+        const payload = {
+          boardListId: targetColumnId,
+          title: existingTask.title,
+          desc: existingTask.description || "",
+          priority: this.mapPriorityToBackend(existingTask.priority),
+          dueDate: existingTask.dueDate ? (existingTask.dueDate.includes('T') ? existingTask.dueDate : `${existingTask.dueDate}T00:00:00`) : null,
+          position: targetPosition
+        }
+
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) {
+          throw new Error(await parseApiError(response, 'Gagal memindahkan task'))
+        }
+        const data = await response.json()
+
+        // Sync local arrays
+        let foundTask = null
+        for (const col of columns) {
+          const idx = col.tasks.findIndex(t => t.id === taskId)
+          if (idx !== -1) {
+            foundTask = col.tasks.splice(idx, 1)[0]
+            break
+          }
+        }
+
+        if (foundTask) {
+          foundTask.position = data.position
+          foundTask.priority = this.mapPriorityToFrontend(data.priority)
+          foundTask.dueDate = data.dueDate ? data.dueDate.split('T')[0] : null
+          
+          const targetCol = columns.find(c => c.id === targetColumnId)
+          if (targetCol) {
+            const insertIdx = targetPosition - 1
+            if (insertIdx >= 0 && insertIdx < targetCol.tasks.length) {
+              targetCol.tasks.splice(insertIdx, 0, foundTask)
+            } else {
+              targetCol.tasks.push(foundTask)
+            }
+          }
+        }
+        this.updateBoardCounts(boardId)
+      } catch (err) {
+        console.error(err)
+        throw err
       }
-      this.updateBoardCounts(boardId)
+    },
+    async deleteTask(boardId, taskId) {
+      const authStore = useAuthStore()
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`
+          }
+        })
+        if (!response.ok) {
+          throw new Error(await parseApiError(response, 'Gagal menghapus task'))
+        }
+        // Remove locally
+        const columns = this.getColumnsByBoardId(boardId)
+        for (const col of columns) {
+          const taskIdx = col.tasks.findIndex(t => t.id === taskId)
+          if (taskIdx !== -1) {
+            col.tasks.splice(taskIdx, 1)
+            break
+          }
+        }
+        this.updateBoardCounts(boardId)
+      } catch (err) {
+        console.error(err)
+        throw err
+      }
     },
     updateBoardCounts(boardId) {
       const board = this.boards.find(b => b.id === Number(boardId))

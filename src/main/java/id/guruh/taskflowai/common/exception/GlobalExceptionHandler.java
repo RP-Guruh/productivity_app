@@ -86,6 +86,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ex.getStatusCode()).body(error);
     }
 
+    // DuplicatePositionException (409)
+    @ExceptionHandler(id.guruh.taskflowai.taskmanagement.task.exception.DuplicatePositionException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicatePosition(
+            id.guruh.taskflowai.taskmanagement.task.exception.DuplicatePositionException ex, HttpServletRequest request) {
+
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error("Conflict")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     // Fallback untuk semua exception lain yang tidak terduga (500)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(
