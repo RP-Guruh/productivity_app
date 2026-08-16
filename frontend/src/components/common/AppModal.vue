@@ -3,7 +3,7 @@
     <Transition name="fade">
       <div v-if="isOpen" class="modal-overlay" @click.self="close">
         <Transition name="zoom">
-          <div v-if="isOpen" class="modal-container" role="dialog" aria-modal="true">
+          <div v-if="isOpen" :class="['modal-container', `modal-${size}`]" role="dialog" aria-modal="true">
             <!-- Header -->
             <div class="modal-header">
               <slot name="header">
@@ -41,6 +41,10 @@ const props = defineProps({
   title: {
     type: String,
     default: ''
+  },
+  size: {
+    type: String,
+    default: 'medium'
   }
 })
 
@@ -92,13 +96,29 @@ onUnmounted(() => {
   background-color: var(--color-panel);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-modal);
-  width: 90%;
-  max-width: 560px;
+  width: 95%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  transition: max-width 200ms ease;
+}
+
+.modal-small {
+  max-width: 400px;
+}
+
+.modal-medium {
+  max-width: 560px;
+}
+
+.modal-large {
+  max-width: 800px;
+}
+
+.modal-xl {
+  max-width: 1100px;
 }
 
 .modal-header {

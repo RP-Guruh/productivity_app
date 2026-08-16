@@ -2,6 +2,7 @@ package id.guruh.taskflowai.common.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
@@ -35,7 +36,7 @@ public class GlobalExceptionHandler {
                 .details(details)
                 .build();
 
-        return ResponseEntity.badRequest().body(error);
+        return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON).body(error);
     }
 
     // Resource tidak ditemukan (404)
@@ -51,7 +52,7 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .build();
 
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).body(error);
     }
 
     // Email/password salah saat login (401)
@@ -67,7 +68,7 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .build();
 
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).contentType(MediaType.APPLICATION_JSON).body(error);
     }
 
     // Exception yang sengaja dilempar dgn ResponseStatusException (dipakai di AuthService)
@@ -83,7 +84,7 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .build();
 
-        return ResponseEntity.status(ex.getStatusCode()).body(error);
+        return ResponseEntity.status(ex.getStatusCode()).contentType(MediaType.APPLICATION_JSON).body(error);
     }
 
     // DuplicatePositionException (409)
@@ -99,7 +100,7 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .build();
 
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+        return ResponseEntity.status(HttpStatus.CONFLICT).contentType(MediaType.APPLICATION_JSON).body(error);
     }
 
     // Fallback untuk semua exception lain yang tidak terduga (500)
@@ -115,6 +116,6 @@ public class GlobalExceptionHandler {
                 .path(request.getRequestURI())
                 .build();
 
-        return ResponseEntity.internalServerError().body(error);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON).body(error);
     }
 }

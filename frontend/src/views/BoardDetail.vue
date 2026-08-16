@@ -144,8 +144,9 @@
     <!-- AI Assistant Modal -->
     <AiAssistantModal
       :is-open="isAiModalOpen"
+      :board-id="boardId"
+      :board-name="board?.name"
       @close="closeAiModal"
-      @add-tasks="addAiTasks"
     />
 
     <!-- Create Column Modal -->
@@ -155,6 +156,7 @@
           label="Nama Kolom"
           v-model="newColumnName"
           placeholder="Contoh: Backlog, Peninjauan..."
+          :disabled="isCreatingColumn"
         />
         <div class="form-group">
           <label class="form-label">Posisi</label>
@@ -164,12 +166,15 @@
             v-model.number="newColumnPosition"
             min="1"
             @keydown.enter="createColumn"
+            :disabled="isCreatingColumn"
           />
         </div>
       </div>
       <template #footer>
-        <AppButton variant="secondary" @click="closeColumnModal">Batal</AppButton>
-        <AppButton variant="primary" :disabled="!newColumnName.trim() || !newColumnPosition" @click="createColumn">Tambah</AppButton>
+        <AppButton variant="secondary" :disabled="isCreatingColumn" @click="closeColumnModal">Batal</AppButton>
+        <AppButton variant="primary" :disabled="!newColumnName.trim() || !newColumnPosition || isCreatingColumn" @click="createColumn">
+          {{ isCreatingColumn ? 'Menambah...' : 'Tambah' }}
+        </AppButton>
       </template>
     </AppModal>
 
@@ -326,6 +331,7 @@ const isAiModalOpen = ref(false)
 const isColumnModalOpen = ref(false)
 const newColumnName = ref('')
 const newColumnPosition = ref(1)
+const isCreatingColumn = ref(false)
 
 onMounted(async () => {
   if (boardStore.boards.length === 0) {
@@ -411,24 +417,6 @@ const closeAiModal = () => {
   isAiModalOpen.value = false
 }
 
-const addAiTasks = async (taskTitles) => {
-  if (columns.value.length > 0) {
-    const firstColId = columns.value[0].id
-    for (const title of taskTitles) {
-      try {
-        await boardStore.addTask(boardId.value, firstColId, {
-          title,
-          description: 'Disusun secara otomatis oleh AI Assistant.',
-          priority: 'sedang',
-          dueDate: null
-        })
-      } catch (err) {
-        console.error('Gagal menambahkan AI task:', err)
-      }
-    }
-  }
-}
-
 const openAddColumnModal = () => {
   newColumnName.value = ''
   // Default posisi = jumlah kolom saat ini + 1
@@ -437,19 +425,24 @@ const openAddColumnModal = () => {
     ? Math.max(...currentColumns.map(c => c.position || 0)) + 1
     : 1
   isColumnModalOpen.value = true
+  isCreatingColumn.value = false
 }
 
 const closeColumnModal = () => {
+  if (isCreatingColumn.value) return
   isColumnModalOpen.value = false
 }
 
 const createColumn = async () => {
-  if (!newColumnName.value.trim() || !newColumnPosition.value) return
+  if (!newColumnName.value.trim() || !newColumnPosition.value || isCreatingColumn.value) return
+  isCreatingColumn.value = true
   try {
     await boardStore.addColumn(boardId.value, newColumnName.value, newColumnPosition.value)
     closeColumnModal()
   } catch (err) {
     alert('Gagal membuat kolom: ' + err.message)
+  } finally {
+    isCreatingColumn.value = false
   }
 }
 </script>

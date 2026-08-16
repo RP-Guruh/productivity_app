@@ -346,11 +346,14 @@
           placeholder="Contoh: Rencana Desain Produk"
           @keydown.enter="createBoard"
           ref="boardNameInputRef"
+          :disabled="isCreatingBoard"
         />
       </div>
       <template #footer>
-        <AppButton variant="secondary" @click="closeCreateBoardModal">Batal</AppButton>
-        <AppButton variant="primary" :disabled="!newBoardName.trim()" @click="createBoard">Buat</AppButton>
+        <AppButton variant="secondary" :disabled="isCreatingBoard" @click="closeCreateBoardModal">Batal</AppButton>
+        <AppButton variant="primary" :disabled="!newBoardName.trim() || isCreatingBoard" @click="createBoard">
+          {{ isCreatingBoard ? 'Membuat...' : 'Buat' }}
+        </AppButton>
       </template>
     </AppModal>
   </div>
@@ -375,6 +378,7 @@ const authStore = useAuthStore()
 
 const isCreateModalOpen = ref(false)
 const newBoardName = ref('')
+const isCreatingBoard = ref(false)
 const isSidebarOpen = ref(false)
 const currentMenu = ref('tasks')
 
@@ -558,20 +562,25 @@ onMounted(() => {
 const openCreateBoardModal = () => {
   newBoardName.value = ''
   isCreateModalOpen.value = true
+  isCreatingBoard.value = false
 }
 
 const closeCreateBoardModal = () => {
+  if (isCreatingBoard.value) return
   isCreateModalOpen.value = false
 }
 
 const createBoard = async () => {
-  if (!newBoardName.value.trim()) return
+  if (!newBoardName.value.trim() || isCreatingBoard.value) return
+  isCreatingBoard.value = true
   try {
     const newId = await boardStore.addBoard(newBoardName.value)
     closeCreateBoardModal()
     router.push(`/board/${newId}`)
   } catch (err) {
     alert(err.message)
+  } finally {
+    isCreatingBoard.value = false
   }
 }
 

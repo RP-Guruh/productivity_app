@@ -246,6 +246,7 @@ export const useBoardStore = defineStore('board', {
           tasks: []
         })
         this.updateBoardCounts(boardId)
+        return data
       } catch (err) {
         console.error(err)
         throw err
