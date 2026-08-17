@@ -19,7 +19,6 @@ import java.util.List;
 public class BoardController {
 
     private final BoardService boardService;
-    private final BoardListService boardListService;
 
     @GetMapping
     public ResponseEntity<List<BoardResponse>> getAllByCurrentUser(Authentication authentication) {
