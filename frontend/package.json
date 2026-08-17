@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "marked": "^18.0.9",
     "perfect-debounce": "^2.1.0",
     "pinia": "^4.0.2",
     "vue": "^3.5.40",
