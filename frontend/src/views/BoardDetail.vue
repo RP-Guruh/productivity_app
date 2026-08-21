@@ -144,8 +144,9 @@
     <!-- AI Assistant Modal -->
     <AiAssistantModal
       :is-open="isAiModalOpen"
+      :board-id="boardId"
+      :board-name="board?.name"
       @close="closeAiModal"
-      @add-tasks="addAiTasks"
     />
 
     <!-- Create Column Modal -->
@@ -155,6 +156,7 @@
           label="Nama Kolom"
           v-model="newColumnName"
           placeholder="Contoh: Backlog, Peninjauan..."
+          :disabled="isCreatingColumn"
         />
         <div class="form-group">
           <label class="form-label">Posisi</label>
@@ -164,12 +166,15 @@
             v-model.number="newColumnPosition"
             min="1"
             @keydown.enter="createColumn"
+            :disabled="isCreatingColumn"
           />
         </div>
       </div>
       <template #footer>
-        <AppButton variant="secondary" @click="closeColumnModal">Batal</AppButton>
-        <AppButton variant="primary" :disabled="!newColumnName.trim() || !newColumnPosition" @click="createColumn">Tambah</AppButton>
+        <AppButton variant="secondary" :disabled="isCreatingColumn" @click="closeColumnModal">Batal</AppButton>
+        <AppButton variant="primary" :disabled="!newColumnName.trim() || !newColumnPosition || isCreatingColumn" @click="createColumn">
+          {{ isCreatingColumn ? 'Menambah...' : 'Tambah' }}
+        </AppButton>
       </template>
     </AppModal>
 
@@ -326,6 +331,7 @@ const isAiModalOpen = ref(false)
 const isColumnModalOpen = ref(false)
 const newColumnName = ref('')
 const newColumnPosition = ref(1)
+const isCreatingColumn = ref(false)
 
 onMounted(async () => {
   if (boardStore.boards.length === 0) {
@@ -360,21 +366,46 @@ const closeTaskModal = () => {
   isTaskModalOpen.value = false
 }
 
-const saveTask = (taskData) => {
-  if (isEditTask.value) {
-    boardStore.updateTask(boardId.value, taskData.id, taskData)
-  } else {
-    boardStore.addTask(boardId.value, targetColumnId.value, taskData)
+const saveTask = async (taskData) => {
+  try {
+    if (isEditTask.value) {
+      await boardStore.updateTask(boardId.value, taskData.id, taskData)
+    } else {
+      await boardStore.addTask(boardId.value, targetColumnId.value, taskData)
+    }
+    closeTaskModal()
+  } catch (err) {
+    alert('Gagal menyimpan task: ' + err.message)
   }
-  closeTaskModal()
 }
 
-const deleteTask = (taskId) => {
-  boardStore.deleteTask(boardId.value, taskId)
-  closeTaskModal()
+const deleteTask = async (taskId) => {
+  try {
+    await boardStore.deleteTask(boardId.value, taskId)
+    closeTaskModal()
+  } catch (err) {
+    alert('Gagal menghapus task: ' + err.message)
+  }
 }
 
-const handleTaskMoved = () => {
+const handleTaskMoved = async ({ columnId, event }) => {
+  if (event.added) {
+    const task = event.added.element
+    const newPos = event.added.newIndex + 1
+    try {
+      await boardStore.moveTask(boardId.value, task.id, columnId, newPos)
+    } catch (err) {
+      alert('Gagal memindahkan task: ' + err.message)
+    }
+  } else if (event.moved) {
+    const task = event.moved.element
+    const newPos = event.moved.newIndex + 1
+    try {
+      await boardStore.moveTask(boardId.value, task.id, columnId, newPos)
+    } catch (err) {
+      alert('Gagal memindahkan task: ' + err.message)
+    }
+  }
   boardStore.updateBoardCounts(boardId.value)
 }
 
@@ -386,21 +417,6 @@ const closeAiModal = () => {
   isAiModalOpen.value = false
 }
 
-const addAiTasks = (taskTitles) => {
-  // Add AI generated tasks to first column (usually Backlog)
-  if (columns.value.length > 0) {
-    const firstColId = columns.value[0].id
-    taskTitles.forEach(title => {
-      boardStore.addTask(boardId.value, firstColId, {
-        title,
-        description: 'Disusun secara otomatis oleh AI Assistant.',
-        priority: 'sedang',
-        dueDate: null
-      })
-    })
-  }
-}
-
 const openAddColumnModal = () => {
   newColumnName.value = ''
   // Default posisi = jumlah kolom saat ini + 1
@@ -409,19 +425,24 @@ const openAddColumnModal = () => {
     ? Math.max(...currentColumns.map(c => c.position || 0)) + 1
     : 1
   isColumnModalOpen.value = true
+  isCreatingColumn.value = false
 }
 
 const closeColumnModal = () => {
+  if (isCreatingColumn.value) return
   isColumnModalOpen.value = false
 }
 
 const createColumn = async () => {
-  if (!newColumnName.value.trim() || !newColumnPosition.value) return
+  if (!newColumnName.value.trim() || !newColumnPosition.value || isCreatingColumn.value) return
+  isCreatingColumn.value = true
   try {
     await boardStore.addColumn(boardId.value, newColumnName.value, newColumnPosition.value)
     closeColumnModal()
   } catch (err) {
     alert('Gagal membuat kolom: ' + err.message)
+  } finally {
+    isCreatingColumn.value = false
   }
 }
 </script>

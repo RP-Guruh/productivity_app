@@ -32,7 +32,7 @@
       ghost-class="sortable-ghost"
       drag-class="sortable-drag"
       :animation="200"
-      @change="$emit('task-moved')"
+      @change="onDragChange"
     >
       <template #item="{ element }">
         <TaskCard :task="element" @edit="$emit('edit-task', element)" />
@@ -60,6 +60,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['add-task', 'edit-task', 'task-moved', 'update-column', 'delete-column'])
+
+const onDragChange = (evt) => {
+  emit('task-moved', { columnId: props.column.id, event: evt })
+}
 
 const confirmDelete = () => {
   if (confirm(`Apakah Anda yakin ingin menghapus kolom "${props.column.name}"?`)) {

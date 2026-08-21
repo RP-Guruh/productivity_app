@@ -56,7 +56,7 @@ defineEmits(['update:modelValue'])
   font-family: 'Inter', sans-serif;
   font-size: var(--text-base);
   color: var(--color-ink);
-  background-color: var(--color-panel);
+  background-color: var(--color-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: 10px 14px;

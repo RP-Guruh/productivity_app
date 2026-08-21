@@ -150,11 +150,17 @@ const save = () => {
   font-size: var(--text-xl);
   font-weight: 700;
   color: var(--color-ink);
+  background-color: transparent;
   border: none;
   border-bottom: 2px solid transparent;
   padding: 4px 0;
   width: 100%;
   transition: border-bottom-color 150ms ease-out;
+}
+
+.title-input::placeholder {
+  color: var(--color-muted);
+  opacity: 0.5;
 }
 
 .title-input:focus {
@@ -179,7 +185,7 @@ const save = () => {
   padding: 8px 16px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background-color: var(--color-panel);
+  background-color: var(--color-paper);
   font-family: 'Inter', sans-serif;
   font-size: var(--text-sm);
   font-weight: 500;
@@ -195,13 +201,13 @@ const save = () => {
 }
 
 .priority-chip--sedang.is-active {
-  background-color: rgba(184, 134, 11, 0.1);
+  background-color: rgba(184, 134, 11, 0.15);
   color: var(--color-warning);
   border-color: var(--color-warning);
 }
 
 .priority-chip--tinggi.is-active {
-  background-color: rgba(232, 86, 47, 0.1);
+  background-color: rgba(232, 86, 47, 0.15);
   color: var(--color-signal);
   border-color: var(--color-signal);
 }
@@ -210,7 +216,7 @@ const save = () => {
   font-family: 'Inter', sans-serif;
   font-size: var(--text-base);
   color: var(--color-ink);
-  background-color: var(--color-panel);
+  background-color: var(--color-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
