@@ -184,6 +184,14 @@
         </div>
 
         <div class="map-toolbar-right">
+          <div class="tile-provider-selector">
+            <span class="provider-label">Layer Peta:</span>
+            <select v-model="selectedTileProvider" @change="changeTileLayer" class="provider-select">
+              <option value="osm">🗺️ OpenStreetMap (Tanpa API Key)</option>
+              <option value="esri">🌐 Esri World Map (Tanpa API Key)</option>
+              <option value="carto">🧭 Carto Light (Tanpa API Key)</option>
+            </select>
+          </div>
           <button class="map-control-btn" @click="recenterMap" title="Pusatkan peta ke target radius">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
             <span>Pusatkan Peta</span>
@@ -690,11 +698,54 @@ const verifiedPhonePercentage = computed(() => {
   return Math.round((count / leads.value.length) * 100)
 })
 
+// Tile Providers (100% Free & No API Key Required)
+const selectedTileProvider = ref('osm')
+let currentTileLayer = null
+
+const TILE_PROVIDERS = {
+  osm: {
+    name: 'OpenStreetMap',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    options: {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      subdomains: ['a', 'b', 'c'],
+      maxZoom: 19
+    }
+  },
+  esri: {
+    name: 'Esri World Street Map',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    options: {
+      attribution: 'Tiles &copy; Esri &mdash; Sources: Esri, USGS, NOAA',
+      maxZoom: 18
+    }
+  },
+  carto: {
+    name: 'Carto Light',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    options: {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }
+  }
+}
+
+const changeTileLayer = () => {
+  if (!leafletMap) return
+  if (currentTileLayer) {
+    leafletMap.removeLayer(currentTileLayer)
+  }
+  const prov = TILE_PROVIDERS[selectedTileProvider.value] || TILE_PROVIDERS.osm
+  currentTileLayer = L.tileLayer(prov.url, prov.options).addTo(leafletMap)
+}
+
 // Initialize Map
 const initMap = () => {
   if (!mapContainerRef.value) return
   if (leafletMap) {
     leafletMap.remove()
+    leafletMap = null
   }
 
   // Create Leaflet instance
@@ -704,12 +755,9 @@ const initMap = () => {
     zoomControl: true
   })
 
-  // Add clean modern tile layer (CartoDB Positron / OSM compatible)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 19
-  }).addTo(leafletMap)
+  // Add Default Free OpenStreetMap Tile Layer (NO API KEY REQUIRED)
+  const prov = TILE_PROVIDERS[selectedTileProvider.value] || TILE_PROVIDERS.osm
+  currentTileLayer = L.tileLayer(prov.url, prov.options).addTo(leafletMap)
 
   // Initialize Layer Groups
   leadMarkersGroup = L.layerGroup().addTo(leafletMap)
@@ -719,6 +767,17 @@ const initMap = () => {
 
   // Render initial leads markers
   renderLeadMarkers()
+
+  // Ensure size is properly computed even if rendered inside a tab or after animations
+  setTimeout(() => {
+    if (leafletMap) leafletMap.invalidateSize()
+  }, 100)
+  setTimeout(() => {
+    if (leafletMap) leafletMap.invalidateSize()
+  }, 400)
+  setTimeout(() => {
+    if (leafletMap) leafletMap.invalidateSize()
+  }, 1000)
 }
 
 // Render Search Center Marker and Radius Circle
@@ -1095,6 +1154,12 @@ const showToast = (msg) => {
   }, 3000)
 }
 
+const handleWindowResize = () => {
+  if (leafletMap) {
+    leafletMap.invalidateSize()
+  }
+}
+
 // Mount Lifecycle
 onMounted(() => {
   // Load default scenario: "Tukang Cukur di Cipayung Depok"
@@ -1106,9 +1171,12 @@ onMounted(() => {
   nextTick(() => {
     initMap()
   })
+
+  window.addEventListener('resize', handleWindowResize)
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleWindowResize)
   if (leafletMap) {
     leafletMap.remove()
     leafletMap = null
@@ -1543,7 +1611,36 @@ onBeforeUnmount(() => {
 .map-toolbar-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tile-provider-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-border);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.provider-label {
+  font-size: 11px;
+  color: var(--color-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.provider-select {
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-ink);
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .map-control-btn {
