@@ -29,7 +29,7 @@
             <input 
               type="text" 
               v-model="searchKeyword" 
-              placeholder="misal: Tukang Cukur, Barbershop, Kafe..."
+              placeholder="Masukkan jenis tempat usaha (misal: Tukang Cukur, Kafe, Bengkel...)"
               required
             />
           </div>
@@ -54,7 +54,7 @@
             <input 
               type="text" 
               v-model="searchLocation" 
-              placeholder="misal: Cipayung Depok, Tebet, Margonda..."
+              placeholder="Masukkan kota, kecamatan, atau alamat target..."
               required
             />
             <button 
@@ -79,8 +79,8 @@
               <option :value="3">3 km</option>
               <option :value="5">5 km</option>
               <option :value="10">10 km</option>
-              <option :value="20">20 km (Semua Area)</option>
-              <option :value="0">Semua Hasil (111 Tempat)</option>
+              <option :value="20">20 km</option>
+              <option :value="0">Semua Jarak</option>
             </select>
           </div>
         </div>
@@ -93,20 +93,6 @@
           </button>
         </div>
       </form>
-
-      <!-- Quick Examples -->
-      <div class="quick-examples">
-        <span class="label">Saran Filter Riil:</span>
-        <button 
-          v-for="(item, i) in exampleSearches" 
-          :key="i"
-          type="button" 
-          class="example-tag"
-          @click="applyExample(item)"
-        >
-          {{ item.keyword }} di {{ item.location }}
-        </button>
-      </div>
     </div>
 
     <!-- Metrics Bar -->
@@ -148,7 +134,8 @@
         <div class="map-title-row">
           <span class="dot-indicator"></span>
           <span class="map-title">Peta Persebaran & Radius</span>
-          <span class="map-meta">({{ searchKeyword }} di sekitar {{ searchLocation }})</span>
+          <span class="map-meta" v-if="searchKeyword && searchLocation">({{ searchKeyword }} di sekitar {{ searchLocation }})</span>
+          <span class="map-meta" v-else-if="currentSearchPoint.name">({{ currentSearchPoint.name }})</span>
           <span v-if="isFullscreen" class="esc-hint">Tekan ESC untuk keluar</span>
         </div>
 
@@ -230,9 +217,10 @@
         <div>
           <div class="table-title-row">
             <h3 class="table-title">Daftar Tempat Usaha</h3>
-            <span class="badge-gmaps-verified">✓ 100% Real Google Maps Scraper</span>
+            <span class="badge-gmaps-verified" v-if="leads.length > 0">✓ 100% Real Google Maps Scraper</span>
           </div>
-          <p class="table-subtitle">Data langsung dari hasil scraping Google Maps Playwright. Klik baris untuk melihat posisi di peta.</p>
+          <p class="table-subtitle" v-if="leads.length > 0">Data langsung dari hasil scraping Google Maps Playwright. Klik baris untuk melihat posisi di peta.</p>
+          <p class="table-subtitle" v-else>Hasil pencarian masih kosong. Silakan isi form pencarian di atas lalu klik tombol Cari.</p>
         </div>
 
         <div class="table-search">
@@ -344,8 +332,22 @@
               </td>
             </tr>
 
+            <!-- Baris Kosong jika belum ada pencarian atau hasil kosong -->
+            <tr v-if="leads.length === 0">
+              <td colspan="9" class="cell-empty">
+                <div class="empty-state-box">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-muted); margin-bottom: 8px;">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <p style="font-weight: 600; color: var(--color-ink); margin-bottom: 4px;">Hasil Pencarian Masih Kosong</p>
+                  <p style="font-size: 12px; color: var(--color-muted); max-width: 420px; margin: 0 auto;">Silakan masukkan kata kunci kategori usaha dan lokasi target pada form di atas, lalu klik <strong>Cari</strong>.</p>
+                </div>
+              </td>
+            </tr>
+
             <!-- Baris Kosong jika filter tidak cocok -->
-            <tr v-if="filteredLeads.length === 0">
+            <tr v-else-if="filteredLeads.length === 0">
               <td colspan="9" class="cell-empty">
                 <p>Tidak ada hasil yang sesuai dengan kata kunci pencarian tabel.</p>
                 <button class="btn-subtle-sm" @click="tableFilterText = ''">Hapus Filter</button>
@@ -458,10 +460,10 @@ import { REAL_GMAPS_CIPAYUNG_LEADS } from '../../data/realGmapsLeads.js'
 
 const emit = defineEmits(['save-to-notes'])
 
-// Search inputs
-const searchKeyword = ref('Tukang Cukur')
-const searchLocation = ref('Cipayung Depok')
-const searchRadius = ref(20) // Default 20 km mencakup seluruh tempat hasil scraper
+// Search inputs - form kosong tanpa default
+const searchKeyword = ref('')
+const searchLocation = ref('')
+const searchRadius = ref(5)
 const isSearching = ref(false)
 const isLocating = ref(false)
 const userLocationCoords = ref(null)
@@ -470,6 +472,7 @@ const tableFilterText = ref('')
 const selectedLead = ref(null)
 const detailModalLead = ref(null)
 const toastMessage = ref('')
+const hasSearched = ref(false)
 
 // Map setup
 const mapContainerRef = ref(null)
@@ -482,20 +485,12 @@ let centerMarkerLayer = null
 let leadMarkersGroup = null
 let currentTileLayer = null
 
-// Current center coordinates (Cipayung Depok)
+// Current center coordinates (Default Jabodetabek)
 const currentSearchPoint = ref({
-  name: 'Cipayung, Depok',
-  lat: -6.4255,
-  lng: 106.8150
+  name: 'Jabodetabek',
+  lat: -6.2088,
+  lng: 106.8456
 })
-
-// Saran pencarian berdasarkan hasil riil Google Maps
-const exampleSearches = [
-  { keyword: 'Tukang Cukur', location: 'Cipayung Depok', radius: 20 },
-  { keyword: 'Barbershop', location: 'Cipayung Depok', radius: 10 },
-  { keyword: 'Pangkas Rambut', location: 'Cipayung Depok', radius: 5 },
-  { keyword: 'Semua Hasil', location: 'Cipayung Depok', radius: 0 }
-]
 
 // OpenStreetMap Tile Layer (100% Free, Tanpa API Key)
 const OSM_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -619,15 +614,17 @@ const renderCenterAndRadius = () => {
   const { lat, lng, name } = currentSearchPoint.value
   const radiusMeters = searchRadius.value * 1000
 
-  // Radius perimeter circle (clean emerald ring)
-  radiusCircleLayer = L.circle([lat, lng], {
-    radius: radiusMeters,
-    color: '#10b981',
-    weight: 1.5,
-    dashArray: '6, 6',
-    fillColor: '#10b981',
-    fillOpacity: 0.05
-  }).addTo(leafletMap)
+  // Radius perimeter circle (clean emerald ring) - hanya dimunculkan jika sudah melakukan pencarian
+  if (hasSearched.value) {
+    radiusCircleLayer = L.circle([lat, lng], {
+      radius: radiusMeters,
+      color: '#10b981',
+      weight: 1.5,
+      dashArray: '6, 6',
+      fillColor: '#10b981',
+      fillOpacity: 0.05
+    }).addTo(leafletMap)
+  }
 
   // Bullet hijau kelap-kelip (Green pulsating / blinking bullet for user position)
   const centerIconHtml = `
@@ -710,24 +707,26 @@ const renderLeadMarkers = () => {
 }
 
 const onRadiusChange = () => {
-  if (radiusCircleLayer) {
-    radiusCircleLayer.setRadius((searchRadius.value || 20) * 1000)
+  if (radiusCircleLayer && hasSearched.value) {
+    radiusCircleLayer.setRadius((searchRadius.value || 5) * 1000)
   }
-  leads.value = loadRealLeads(
-    currentSearchPoint.value.lat,
-    currentSearchPoint.value.lng,
-    searchRadius.value,
-    searchKeyword.value
-  )
-  renderLeadMarkers()
+  if (hasSearched.value) {
+    leads.value = loadRealLeads(
+      currentSearchPoint.value.lat,
+      currentSearchPoint.value.lng,
+      searchRadius.value,
+      searchKeyword.value
+    )
+    renderLeadMarkers()
+  }
 }
 
 const recenterMap = () => {
   if (!leafletMap) return
-  if (radiusCircleLayer) {
+  if (radiusCircleLayer && hasSearched.value) {
     leafletMap.fitBounds(radiusCircleLayer.getBounds(), { padding: [25, 25] })
   } else {
-    leafletMap.setView([currentSearchPoint.value.lat, currentSearchPoint.value.lng], 14)
+    leafletMap.setView([currentSearchPoint.value.lat, currentSearchPoint.value.lng], hasSearched.value ? 14 : 12)
   }
 }
 
@@ -753,15 +752,21 @@ const focusLeadOnMap = (lead) => {
 }
 
 const handleSearch = async () => {
+  if (!searchKeyword.value.trim() && !searchLocation.value.trim()) {
+    showToast('Silakan isi kata kunci atau lokasi pencarian.')
+    return
+  }
+
   isSearching.value = true
+  hasSearched.value = true
   selectedLead.value = null
 
   const locQuery = searchLocation.value.trim()
   let geoLat = currentSearchPoint.value.lat
   let geoLng = currentSearchPoint.value.lng
-  let pointName = locQuery
+  let pointName = locQuery || 'Sekitar Lokasi'
 
-  if (userLocationCoords.value && (locQuery.toLowerCase().includes('saya') || locQuery.toLowerCase().includes('riil'))) {
+  if (userLocationCoords.value && (locQuery.toLowerCase().includes('saya') || locQuery.toLowerCase().includes('riil') || !locQuery)) {
     geoLat = userLocationCoords.value.lat
     geoLng = userLocationCoords.value.lng
     pointName = currentSearchPoint.value.name
@@ -805,13 +810,6 @@ const handleSearch = async () => {
 
   isSearching.value = false
   showToast(`Ditemukan ${leads.value.length} tempat riil Google Maps di ${pointName}`)
-}
-
-const applyExample = (item) => {
-  searchKeyword.value = item.keyword
-  searchLocation.value = item.location
-  searchRadius.value = item.radius
-  handleSearch()
 }
 
 const exportToCsv = () => {
@@ -1011,24 +1009,33 @@ const getUserCurrentLocation = (isUserTriggered = false) => {
         resolvedAddress = `Lokasi Riil (${lat.toFixed(4)}, ${lng.toFixed(4)})`
       }
 
-      searchLocation.value = resolvedAddress
+      if (isUserTriggered) {
+        searchLocation.value = resolvedAddress
+      }
+
       currentSearchPoint.value = {
         name: resolvedAddress,
         lat,
         lng
       }
 
-      // Hitung jarak data riil Google Maps dari posisi GPS pengguna
-      leads.value = loadRealLeads(lat, lng, searchRadius.value, searchKeyword.value)
+      // Hanya hitung ulang data jika pengguna sudah pernah menekan Cari
+      if (hasSearched.value) {
+        leads.value = loadRealLeads(lat, lng, searchRadius.value, searchKeyword.value)
+      }
 
       if (leafletMap) {
-        leafletMap.setView([lat, lng], 14, { animate: true })
+        leafletMap.setView([lat, lng], hasSearched.value ? 14 : 12, { animate: true })
         renderCenterAndRadius()
-        renderLeadMarkers()
+        if (hasSearched.value) {
+          renderLeadMarkers()
+        }
       }
 
       isLocating.value = false
-      showToast(isUserTriggered ? `Lokasi diperbarui ke: ${resolvedAddress}` : `Lokasi riil Anda terdeteksi: ${resolvedAddress}`)
+      if (isUserTriggered) {
+        showToast(`Lokasi diperbarui ke: ${resolvedAddress}`)
+      }
     },
     (error) => {
       isLocating.value = false
@@ -1054,17 +1061,12 @@ const getUserCurrentLocation = (isUserTriggered = false) => {
 }
 
 onMounted(() => {
-  // Hubungkan langsung 111 data riil tempat usaha hasil scraper Google Maps
-  leads.value = loadRealLeads(
-    currentSearchPoint.value.lat,
-    currentSearchPoint.value.lng,
-    searchRadius.value,
-    searchKeyword.value
-  )
+  // Hasil pencarian awal dibuat kosong sesuai instruksi
+  leads.value = []
 
   nextTick(() => {
     initMap()
-    // Otomatis pakai posisi real saya sebagai default location
+    // Deteksi posisi GPS user secara pasif (tidak mengisi form atau memuat hasil sebelum dicari)
     getUserCurrentLocation(false)
   })
 
