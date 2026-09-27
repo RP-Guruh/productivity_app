@@ -1,0 +1,23 @@
+{
+  "name": "google-maps-scraper",
+  "version": "1.0.0",
+  "description": "Google Maps Lead Scraper using Playwright and Node.js with intelligent infinite scroll handling",
+  "main": "scraper.js",
+  "type": "commonjs",
+  "scripts": {
+    "scrape": "node scraper.js",
+    "test": "node scraper.js"
+  },
+  "keywords": [
+    "google-maps",
+    "scraper",
+    "playwright",
+    "leads",
+    "lead-generator"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}

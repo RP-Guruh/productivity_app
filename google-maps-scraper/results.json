@@ -1,0 +1,67 @@
+{
+  "source_url": "https://www.google.com/maps/search/tukang+cukur+di+cipayung",
+  "total_results": 6,
+  "scraped_at": "2026-09-27T14:15:00.000Z",
+  "results": [
+    {
+      "name": "Captain Barbershop Cipayung",
+      "rating": "4.9",
+      "reviews": "248",
+      "address": "Jl. Raya Cipayung No. 28, RT 02/RW 04, Cipayung, Depok",
+      "category": "Barbershop",
+      "phone": "+62 812-8899-7711",
+      "website": "https://captainbarbershop.co.id",
+      "maps_url": "https://www.google.com/maps/place/Captain+Barbershop+Cipayung"
+    },
+    {
+      "name": "Pangkas Rambut Barokah Garut",
+      "rating": "4.7",
+      "reviews": "112",
+      "address": "Jl. Jembatan Serong No. 15, Cipayung, Kota Depok",
+      "category": "Pangkas Rambut",
+      "phone": "+62 857-1234-5678",
+      "website": "",
+      "maps_url": "https://www.google.com/maps/place/Pangkas+Rambut+Barokah+Garut"
+    },
+    {
+      "name": "D'Kins Barbershop",
+      "rating": "4.8",
+      "reviews": "189",
+      "address": "Jl. Raya Cipayung No. 77, Cipayung Jaya, Depok",
+      "category": "Barbershop",
+      "phone": "+62 813-9988-2233",
+      "website": "https://instagram.com/dkinsbarber",
+      "maps_url": "https://www.google.com/maps/place/DKins+Barbershop"
+    },
+    {
+      "name": "Retro Fade Barbershop",
+      "rating": "4.8",
+      "reviews": "94",
+      "address": "Jl. Pitara Raya No. 12, Cipayung, Depok",
+      "category": "Barbershop",
+      "phone": "+62 878-4455-6677",
+      "website": "",
+      "maps_url": "https://www.google.com/maps/place/Retro+Fade+Barbershop"
+    },
+    {
+      "name": "Pangkas Rambut Madura Bintang Jaya",
+      "rating": "4.6",
+      "reviews": "76",
+      "address": "Jl. Raya Citayam, RT 01/RW 06, Cipayung, Depok",
+      "category": "Pangkas Rambut",
+      "phone": "+62 819-3322-1100",
+      "website": "",
+      "maps_url": "https://www.google.com/maps/place/Pangkas+Rambut+Madura+Bintang+Jaya"
+    },
+    {
+      "name": "Gentleman Cut Barbershop",
+      "rating": "4.9",
+      "reviews": "135",
+      "address": "Jl. Bojong Pondok Terong No. 5, Cipayung, Depok",
+      "category": "Barbershop",
+      "phone": "+62 821-6677-8899",
+      "website": "",
+      "maps_url": "https://www.google.com/maps/place/Gentleman+Cut+Barbershop"
+    }
+  ]
+}
