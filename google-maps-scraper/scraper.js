@@ -194,18 +194,23 @@ async function scrapeGoogleMaps(url, options = {}) {
 
       // Rating (e.g. "4.8" or "4,8")
       let rating = await safeText(item.locator('.MW4etd, span[aria-label*="bintang"], span[aria-label*="stars"]'));
-      if (rating) {
-        rating = rating.replace(',', '.');
+      const ratingMatch = rating.match(/(\d+[.,]\d+)/);
+      if (ratingMatch) {
+        rating = ratingMatch[1].replace(',', '.');
+      } else {
+        rating = rating ? rating.trim() : '';
       }
 
       // Total Reviews (e.g. "(123)" -> "123")
       let reviews = await safeText(item.locator('.UY7F9'));
-      if (reviews) {
-        reviews = reviews.replace(/[()]/g, '').trim();
+      const revMatch = reviews.match(/\(?(\d[\d.,]*)\)?/);
+      if (revMatch) {
+        reviews = revMatch[1].replace(/[.,]/g, '').trim();
+      } else {
+        reviews = reviews ? reviews.replace(/[()]/g, '').trim() : '';
       }
 
       // Category & Address lines
-      // In Google Maps results, line 2 and line 3 contain category, rating, address, open hours, etc.
       let category = '';
       let address = '';
       let phone = '';
@@ -215,7 +220,8 @@ async function scrapeGoogleMaps(url, options = {}) {
       const detailLines = await item.locator('.W4P4ne, .W4bE9, div[class*="fontBodyMedium"]').allInnerTexts().catch(() => []);
       
       for (const line of detailLines) {
-        const text = line.trim();
+        // Flatten newlines into single spaces
+        const text = line.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim();
         if (!text) continue;
 
         // Check for phone number pattern (+62 or 08 or (021))
@@ -224,18 +230,28 @@ async function scrapeGoogleMaps(url, options = {}) {
           phone = phoneMatch[0].replace(/\s+/g, ' ').trim();
         }
 
-        // Parse category (often the first text before separator '·' or '•')
-        if (!category && (text.includes('·') || text.includes('•'))) {
+        // Parse category and address
+        if (text.includes('·') || text.includes('•')) {
           const parts = text.split(/[·•]/).map(s => s.trim());
-          if (parts.length > 0 && isNaN(parts[0])) {
+          if (parts.length > 0 && !category && isNaN(parts[0]) && !parts[0].includes('Buka') && !parts[0].includes('Tutup')) {
             category = parts[0];
           }
-          if (parts.length > 1 && !address && (parts[1].toLowerCase().includes('jl') || parts[1].toLowerCase().includes('raya') || parts[1].length > 10)) {
-            address = parts[1];
+          for (let p = 1; p < parts.length; p++) {
+            const part = parts[p];
+            if (!address && (part.toLowerCase().includes('jl') || part.toLowerCase().includes('raya') || part.toLowerCase().includes('rt ') || part.toLowerCase().includes('rw ') || part.toLowerCase().includes('blok') || part.toLowerCase().includes('no.') || part.toLowerCase().includes('kec') || part.toLowerCase().includes('kel'))) {
+              address = part;
+            }
           }
-        } else if (!address && (text.toLowerCase().startsWith('jl') || text.toLowerCase().includes('rt ') || text.toLowerCase().includes('rw '))) {
+        } else if (!address && (text.toLowerCase().includes('jl.') || text.toLowerCase().includes('jl ') || text.toLowerCase().includes('rt ') || text.toLowerCase().includes('rw '))) {
           address = text;
+        } else if (!category && (text.toLowerCase().includes('cukur') || text.toLowerCase().includes('barber') || text.toLowerCase().includes('salon') || text.toLowerCase().includes('restoran') || text.toLowerCase().includes('kafe') || text.toLowerCase().includes('toko'))) {
+          category = text;
         }
+      }
+
+      // Default category fallback if not detected
+      if (!category) {
+        category = 'Tempat Usaha';
       }
 
       // Extract Website URL if present
