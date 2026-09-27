@@ -4,17 +4,17 @@
     <div class="page-header">
       <div>
         <h2 class="title">Lead Generator</h2>
-        <p class="subtitle">Cari tempat usaha dan data kontak di sekitar lokasi target.</p>
+        <p class="subtitle">Search local businesses, contact details, and locations.</p>
       </div>
 
       <div class="header-actions">
-        <button class="btn-subtle" @click="copyAllContacts" :disabled="leads.length === 0" title="Salin nomor kontak">
+        <button class="btn-subtle" @click="copyAllContacts" :disabled="leads.length === 0" title="Copy all phone numbers">
           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-          <span>{{ copiedContacts ? 'Tersalin' : 'Salin Kontak' }}</span>
+          <span>{{ copiedContacts ? 'Copied' : 'Copy Contacts' }}</span>
         </button>
-        <button class="btn-subtle" @click="exportToCsv" :disabled="leads.length === 0" title="Download data CSV">
+        <button class="btn-subtle" @click="exportToCsv" :disabled="leads.length === 0" title="Export as CSV">
           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          <span>Unduh CSV</span>
+          <span>Export CSV</span>
         </button>
       </div>
     </div>
@@ -23,13 +23,13 @@
     <div class="search-card">
       <form @submit.prevent="handleSearch" class="search-bar">
         <div class="search-field flex-2">
-          <label>Kategori / Tempat</label>
+          <label>Business Category</label>
           <div class="input-wrap">
             <svg class="field-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <input 
               type="text" 
               v-model="searchKeyword" 
-              placeholder="Masukkan jenis tempat usaha (misal: Tukang Cukur, Kafe, Bengkel...)"
+              placeholder="e.g. School, Cafe, Barbershop, Clinic..."
               required
             />
           </div>
@@ -37,16 +37,16 @@
 
         <div class="search-field flex-2">
           <div class="field-label-row">
-            <label>Lokasi / Alamat</label>
+            <label>Location / City</label>
             <button 
               type="button" 
               class="btn-text-link" 
               @click="getUserCurrentLocation(true)"
               :disabled="isLocating"
-              title="Gunakan posisi riil saya saat ini"
+              title="Use current location"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
-              <span>{{ isLocating ? 'Mencari...' : 'Pakai Lokasi Saya' }}</span>
+              <span>{{ isLocating ? 'Locating...' : 'Use My Location' }}</span>
             </button>
           </div>
           <div class="input-wrap">
@@ -54,7 +54,7 @@
             <input 
               type="text" 
               v-model="searchLocation" 
-              placeholder="Masukkan kota, kecamatan, atau alamat target..."
+              placeholder="City, district, or neighborhood..."
               required
             />
             <button 
@@ -62,7 +62,7 @@
               class="btn-input-gps" 
               @click="getUserCurrentLocation(true)"
               :disabled="isLocating"
-              title="Deteksi lokasi riil saya (GPS)"
+              title="Detect my current location (GPS)"
             >
               <svg v-if="!isLocating" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
               <span v-else class="gps-spinner"></span>
@@ -80,7 +80,7 @@
               <option :value="5">5 km</option>
               <option :value="10">10 km</option>
               <option :value="20">20 km</option>
-              <option :value="0">Semua Jarak</option>
+              <option :value="0">Any Distance</option>
             </select>
           </div>
         </div>
@@ -89,7 +89,7 @@
           <button type="submit" class="btn-primary" :disabled="isSearching">
             <svg v-if="!isSearching" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <span v-else class="btn-spinner"></span>
-            <span>{{ isSearching ? 'Mencari...' : 'Cari' }}</span>
+            <span>{{ isSearching ? 'Searching...' : 'Search' }}</span>
           </button>
         </div>
       </form>
@@ -99,28 +99,28 @@
     <div class="metrics-bar" v-if="leads.length > 0">
       <div class="metric-item">
         <span class="live-pulse-badge"></span>
-        <span class="metric-label">Google Maps Riil</span>
-        <span class="metric-value">{{ leads.length }} tempat</span>
+        <span class="metric-label">Verified Places</span>
+        <span class="metric-value">{{ leads.length }} places</span>
       </div>
       <div class="metric-divider"></div>
       <div class="metric-item">
-        <span class="metric-label">Pusat Lokasi</span>
+        <span class="metric-label">Center Point</span>
         <span class="metric-value">{{ currentSearchPoint.name }}</span>
       </div>
       <div class="metric-divider"></div>
       <div class="metric-item">
         <span class="metric-label">Radius</span>
-        <span class="metric-value">{{ searchRadius > 0 ? `${searchRadius} km` : 'Semua Area' }}</span>
+        <span class="metric-value">{{ searchRadius > 0 ? `${searchRadius} km` : 'All Distances' }}</span>
       </div>
       <div class="metric-divider"></div>
       <div class="metric-item">
-        <span class="metric-label">Rata-rata Rating</span>
+        <span class="metric-label">Average Rating</span>
         <span class="metric-value">★ {{ averageRating }} / 5.0</span>
       </div>
       <div class="metric-divider"></div>
       <div class="metric-item">
-        <span class="metric-label">Ada No. Kontak</span>
-        <span class="metric-value">{{ leadsWithPhoneCount }} dari {{ leads.length }} tempat</span>
+        <span class="metric-label">Phone Available</span>
+        <span class="metric-value">{{ leadsWithPhoneCount }} of {{ leads.length }} places</span>
       </div>
     </div>
 
@@ -133,10 +133,10 @@
       <div class="map-header">
         <div class="map-title-row">
           <span class="dot-indicator"></span>
-          <span class="map-title">Peta Persebaran & Radius</span>
-          <span class="map-meta" v-if="searchKeyword && searchLocation">({{ searchKeyword }} di sekitar {{ searchLocation }})</span>
+          <span class="map-title">Map & Coverage</span>
+          <span class="map-meta" v-if="searchKeyword && searchLocation">({{ searchKeyword }} near {{ searchLocation }})</span>
           <span class="map-meta" v-else-if="currentSearchPoint.name">({{ currentSearchPoint.name }})</span>
-          <span v-if="isFullscreen" class="esc-hint">Tekan ESC untuk keluar</span>
+          <span v-if="isFullscreen" class="esc-hint">Press ESC to exit</span>
         </div>
 
         <div class="map-controls">
@@ -144,26 +144,26 @@
             class="btn-map-tool" 
             @click="getUserCurrentLocation(true)" 
             :disabled="isLocating"
-            title="Arahkan peta ke posisi riil saya saat ini"
+            title="Focus map on my location"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
-            <span>{{ isLocating ? 'Mencari...' : 'Lokasi Saya' }}</span>
+            <span>{{ isLocating ? 'Locating...' : 'My Location' }}</span>
           </button>
 
-          <button class="btn-map-tool" @click="recenterMap" title="Pusatkan kembali ke radius pencarian">
+          <button class="btn-map-tool" @click="recenterMap" title="Center map to search radius">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
-            <span>Pusatkan</span>
+            <span>Center</span>
           </button>
 
           <button 
             class="btn-map-tool btn-fullscreen" 
             :class="{ 'btn-active': isFullscreen }" 
             @click="toggleFullscreen" 
-            :title="isFullscreen ? 'Keluar Layar Penuh (Esc)' : 'Perbesar Peta ke Layar Penuh'"
+            :title="isFullscreen ? 'Exit Fullscreen (Esc)' : 'Expand to Fullscreen'"
           >
             <svg v-if="!isFullscreen" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
             <svg v-else xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>
-            <span>{{ isFullscreen ? 'Keluar' : 'Layar Penuh' }}</span>
+            <span>{{ isFullscreen ? 'Exit' : 'Fullscreen' }}</span>
           </button>
         </div>
       </div>
@@ -208,7 +208,7 @@
             <div class="metric-chip rating-chip">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
               <span>{{ selectedLead.rating }}</span>
-              <span class="chip-sub">({{ selectedLead.reviews }} ulasan)</span>
+              <span class="chip-sub">({{ selectedLead.reviews }} reviews)</span>
             </div>
 
             <div class="metric-chip distance-chip">
@@ -229,7 +229,7 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
               </svg>
-              <span class="wa-main-text">Hubungi via WhatsApp</span>
+              <span class="wa-main-text">Contact on WhatsApp</span>
               <span class="wa-sub-text" v-if="selectedLead.phoneFormatted">({{ selectedLead.phoneFormatted }})</span>
             </a>
 
@@ -241,14 +241,14 @@
                 target="_blank" 
                 rel="noopener noreferrer" 
                 class="btn-action-ghost"
-                title="Buka langsung di Google Maps"
+                title="View on Google Maps"
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                 <span>Google Maps</span>
               </a>
               <button class="btn-action-ghost" @click="openLeadDetails(selectedLead)">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                <span>Detail Tempat</span>
+                <span>Details</span>
               </button>
             </div>
           </div>
@@ -261,11 +261,11 @@
       <div class="table-header">
         <div>
           <div class="table-title-row">
-            <h3 class="table-title">Daftar Tempat Usaha</h3>
-            <span class="badge-gmaps-verified" v-if="leads.length > 0">✓ 100% Real Google Maps Scraper</span>
+            <h3 class="table-title">Business Directory</h3>
+            <span class="badge-gmaps-verified" v-if="leads.length > 0">✓ Verified Places</span>
           </div>
-          <p class="table-subtitle" v-if="leads.length > 0">Data langsung dari hasil scraping Google Maps Playwright. Klik baris untuk melihat posisi di peta.</p>
-          <p class="table-subtitle" v-else>Hasil pencarian masih kosong. Silakan isi form pencarian di atas lalu klik tombol Cari.</p>
+          <p class="table-subtitle" v-if="leads.length > 0">Real-time places from Google Maps. Click any row to focus on the map.</p>
+          <p class="table-subtitle" v-else>No results yet. Enter search criteria above and click Search.</p>
         </div>
 
         <div class="table-search">
@@ -273,7 +273,7 @@
           <input 
             type="text" 
             v-model="tableFilterText" 
-            placeholder="Saring nama, alamat, atau layanan..."
+            placeholder="Filter by name, address, or category..."
           />
         </div>
       </div>
@@ -283,14 +283,14 @@
           <thead>
             <tr>
               <th style="width: 40px;">No</th>
-              <th>Nama Tempat</th>
+              <th>Business Name</th>
               <th style="width: 130px;">Rating</th>
-              <th>Alamat</th>
-              <th style="width: 100px;">Jarak</th>
-              <th style="width: 170px;">WhatsApp / Telepon</th>
-              <th style="width: 130px;">Jam Buka</th>
-              <th>Perkiraan Tarif & Layanan</th>
-              <th style="width: 110px; text-align: center;">Aksi</th>
+              <th>Address</th>
+              <th style="width: 100px;">Distance</th>
+              <th style="width: 170px;">WhatsApp / Phone</th>
+              <th style="width: 130px;">Status & Hours</th>
+              <th>Services & Pricing</th>
+              <th style="width: 110px; text-align: center;">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -331,10 +331,10 @@
               <!-- Kontak -->
               <td class="cell-contact" @click.stop>
                 <div class="contact-row">
-                  <a :href="'https://wa.me/' + lead.phoneRaw" target="_blank" class="contact-link" title="Kirim Pesan WhatsApp">
+                  <a :href="'https://wa.me/' + lead.phoneRaw" target="_blank" class="contact-link" title="Open WhatsApp Chat">
                     {{ lead.phoneFormatted }}
                   </a>
-                  <button class="btn-copy-inline" @click="copyText(lead.phoneFormatted)" title="Salin nomor">
+                  <button class="btn-copy-inline" @click="copyText(lead.phoneFormatted)" title="Copy phone number">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                   </button>
                 </div>
@@ -343,7 +343,7 @@
               <!-- Jam Operasional -->
               <td class="cell-hours">
                 <span :class="['badge-status', lead.isOpen ? 'open' : 'closed']">
-                  {{ lead.isOpen ? 'Buka' : 'Tutup' }}
+                  {{ lead.isOpen ? 'Open' : 'Closed' }}
                 </span>
                 <span class="hours-sub">{{ lead.hours }}</span>
               </td>
@@ -363,32 +363,32 @@
                     target="_blank" 
                     rel="noopener noreferrer" 
                     class="btn-icon" 
-                    title="Buka langsung di Google Maps"
+                    title="View on Google Maps"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                   </a>
-                  <button class="btn-icon" @click="focusLeadOnMap(lead)" title="Lihat di Peta">
+                  <button class="btn-icon" @click="focusLeadOnMap(lead)" title="Focus on map">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                   </button>
-                  <button class="btn-icon" @click="openLeadDetails(lead)" title="Detail Lengkap">
+                  <button class="btn-icon" @click="openLeadDetails(lead)" title="View details">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                   </button>
                 </div>
               </td>
             </tr>
 
-            <!-- Baris Loading saat sedang scraping secara live -->
+            <!-- Loading State -->
             <tr v-if="isSearching">
               <td colspan="9" class="cell-empty">
                 <div class="empty-state-box">
                   <div class="scraper-live-spinner"></div>
-                  <p style="font-weight: 600; color: var(--color-ink); margin-bottom: 4px; margin-top: 12px;">Sedang Mengambil Data Riil dari Google Maps...</p>
-                  <p style="font-size: 12px; color: var(--color-muted); max-width: 440px; margin: 0 auto;">Bot Playwright sedang membuka Google Maps untuk mengekstrak tempat usaha terverifikasi secara langsung. Mohon tunggu beberapa detik.</p>
+                  <p style="font-weight: 600; color: var(--color-ink); margin-bottom: 4px; margin-top: 12px;">Searching Google Maps...</p>
+                  <p style="font-size: 12px; color: var(--color-muted); max-width: 440px; margin: 0 auto;">Retrieving places and business details in real time. Please wait a moment.</p>
                 </div>
               </td>
             </tr>
 
-            <!-- Baris Kosong jika belum ada pencarian atau hasil kosong -->
+            <!-- Empty State -->
             <tr v-else-if="leads.length === 0">
               <td colspan="9" class="cell-empty">
                 <div class="empty-state-box">
@@ -396,17 +396,17 @@
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
-                  <p style="font-weight: 600; color: var(--color-ink); margin-bottom: 4px;">Hasil Pencarian Masih Kosong</p>
-                  <p style="font-size: 12px; color: var(--color-muted); max-width: 420px; margin: 0 auto;">Silakan masukkan kata kunci kategori usaha dan lokasi target pada form di atas, lalu klik <strong>Cari</strong>.</p>
+                  <p style="font-weight: 600; color: var(--color-ink); margin-bottom: 4px;">No Search Results Yet</p>
+                  <p style="font-size: 12px; color: var(--color-muted); max-width: 420px; margin: 0 auto;">Enter a business category and target location in the form above, then click <strong>Search</strong>.</p>
                 </div>
               </td>
             </tr>
 
-            <!-- Baris Kosong jika filter tidak cocok -->
+            <!-- Filtered Empty State -->
             <tr v-else-if="filteredLeads.length === 0">
               <td colspan="9" class="cell-empty">
-                <p>Tidak ada hasil yang sesuai dengan kata kunci pencarian tabel.</p>
-                <button class="btn-subtle-sm" @click="tableFilterText = ''">Hapus Filter</button>
+                <p>No places match your search filter.</p>
+                <button class="btn-subtle-sm" @click="tableFilterText = ''">Clear Filter</button>
               </td>
             </tr>
           </tbody>
@@ -427,22 +427,22 @@
 
         <div class="modal-content">
           <div class="info-row">
-            <span class="info-label">Alamat</span>
+            <span class="info-label">Address</span>
             <span class="info-value">{{ detailModalLead.address }}</span>
           </div>
 
           <div class="info-row">
-            <span class="info-label">Jarak</span>
-            <span class="info-value">{{ detailModalLead.distanceText }} dari posisi pusat</span>
+            <span class="info-label">Distance</span>
+            <span class="info-value">{{ detailModalLead.distanceText }} from search center</span>
           </div>
 
           <div class="info-row">
             <span class="info-label">Rating</span>
-            <span class="info-value">★ {{ detailModalLead.rating }} ({{ detailModalLead.reviews }} ulasan di Google Maps)</span>
+            <span class="info-value">★ {{ detailModalLead.rating }} ({{ detailModalLead.reviews }} Google Maps reviews)</span>
           </div>
 
           <div class="info-row">
-            <span class="info-label">Kontak WhatsApp</span>
+            <span class="info-label">WhatsApp Contact</span>
             <span class="info-value">
               <a :href="'https://wa.me/' + detailModalLead.phoneRaw" target="_blank" class="contact-link">
                 {{ detailModalLead.phoneFormatted }}
@@ -451,37 +451,37 @@
           </div>
 
           <div class="info-row">
-            <span class="info-label">Jam Operasional</span>
-            <span class="info-value">{{ detailModalLead.isOpen ? 'Sedang Buka' : 'Tutup' }} • {{ detailModalLead.hours }}</span>
+            <span class="info-label">Hours</span>
+            <span class="info-value">{{ detailModalLead.isOpen ? 'Open Now' : 'Closed' }} • {{ detailModalLead.hours }}</span>
           </div>
 
           <div class="info-row">
-            <span class="info-label">Tarif & Layanan</span>
+            <span class="info-label">Services & Pricing</span>
             <span class="info-value">{{ detailModalLead.priceRange }} ({{ detailModalLead.features }})</span>
           </div>
 
           <div class="info-row" v-if="detailModalLead.maps_url">
-            <span class="info-label">Link Google Maps</span>
+            <span class="info-label">Google Maps</span>
             <span class="info-value">
               <a :href="detailModalLead.maps_url" target="_blank" rel="noopener noreferrer" class="contact-link">
-                Buka Lokasi Langsung di Google Maps ↗
+                Open in Google Maps ↗
               </a>
             </span>
           </div>
 
           <div class="info-row full-width">
-            <span class="info-label">Catatan Tambahan</span>
+            <span class="info-label">Notes</span>
             <textarea 
               v-model="detailModalLead.customNote" 
               class="notes-input" 
-              placeholder="Tambahkan catatan khusus untuk tempat ini..."
+              placeholder="Add notes about this business..."
               rows="3"
             ></textarea>
           </div>
         </div>
 
         <div class="modal-foot">
-          <button class="btn-subtle" @click="detailModalLead = null">Tutup</button>
+          <button class="btn-subtle" @click="detailModalLead = null">Close</button>
           <a 
             v-if="detailModalLead.maps_url" 
             :href="detailModalLead.maps_url" 
@@ -492,10 +492,10 @@
             Google Maps ↗
           </a>
           <button class="btn-secondary" @click="saveLeadAsNote(detailModalLead)">
-            Simpan ke Quick Notes
+            Save to Notes
           </button>
           <a :href="'https://wa.me/' + detailModalLead.phoneRaw" target="_blank" class="btn-primary">
-            Kirim WhatsApp
+            Contact WhatsApp
           </a>
         </div>
       </div>
@@ -571,23 +571,22 @@ const calculateDistanceKm = (lat1, lon1, lat2, lon2) => {
 const allScrapedLeads = ref([])
 const leads = ref([])
 
-// Terapkan penyaringan ketat berdasarkan radius yang dipilih pengguna
+// Apply strict filtering based on user-selected radius
 const applyRadiusFilter = (showFeedback = false) => {
   const maxRadius = Number(searchRadius.value) || 0
   if (maxRadius > 0) {
-    // Saring ketat: hanya data dengan jarak <= radius yang akan ditampilkan
     leads.value = allScrapedLeads.value.filter(item => item.distanceKm <= maxRadius)
     if (showFeedback) {
       if (leads.value.length > 0) {
-        showToast(`Ditemukan ${leads.value.length} tempat dalam radius ${maxRadius} km.`)
+        showToast(`Found ${leads.value.length} places within ${maxRadius} km.`)
       } else if (allScrapedLeads.value.length > 0) {
-        showToast(`Tidak ada tempat dalam radius ${maxRadius} km (terdekat: ${allScrapedLeads.value[0].distanceText}). Silakan naikkan pilihan radius.`)
+        showToast(`No places found within ${maxRadius} km (nearest is ${allScrapedLeads.value[0].distanceText}). Try expanding radius.`)
       }
     }
   } else {
     leads.value = [...allScrapedLeads.value]
     if (showFeedback && leads.value.length > 0) {
-      showToast(`Menampilkan semua ${leads.value.length} tempat hasil pencarian.`)
+      showToast(`Showing all ${leads.value.length} places found.`)
     }
   }
 
@@ -810,22 +809,22 @@ const focusLeadOnMap = (lead) => {
 
 const handleSearch = async () => {
   if (!searchKeyword.value.trim() && !searchLocation.value.trim()) {
-    showToast('Silakan isi kata kunci atau lokasi pencarian.')
+    showToast('Please enter a business category or location.')
     return
   }
 
   isSearching.value = true
   hasSearched.value = true
   selectedLead.value = null
-  leads.value = [] // Kosongkan hasil sebelumnya saat sedang mencari
+  leads.value = [] // Clear previous results while searching
 
   const locQuery = searchLocation.value.trim()
   const keyQuery = searchKeyword.value.trim()
   let geoLat = currentSearchPoint.value.lat
   let geoLng = currentSearchPoint.value.lng
-  let pointName = locQuery || 'Sekitar Lokasi'
+  let pointName = locQuery || 'Selected Area'
 
-  if (userLocationCoords.value && (locQuery.toLowerCase().includes('saya') || locQuery.toLowerCase().includes('riil') || !locQuery)) {
+  if (userLocationCoords.value && (locQuery.toLowerCase().includes('saya') || locQuery.toLowerCase().includes('my') || locQuery.toLowerCase().includes('current') || !locQuery)) {
     geoLat = userLocationCoords.value.lat
     geoLng = userLocationCoords.value.lng
     pointName = currentSearchPoint.value.name
@@ -859,16 +858,16 @@ const handleSearch = async () => {
   }
 
   try {
-    showToast(`Bot Google Maps aktif: Mencari "${keyQuery}" di ${pointName}...`)
+    showToast(`Searching for "${keyQuery}" near ${pointName}...`)
 
-    // Request ke Live API Playwright Scraper (ambil hingga 30 data tempat Google Maps)
+    // Request to Live Playwright Scraper API
     const apiUrl = `/api/leads/search?keyword=${encodeURIComponent(keyQuery)}&location=${encodeURIComponent(locQuery)}&limit=30`
     const res = await fetch(apiUrl)
 
     if (res.ok) {
       const data = await res.json()
       if (Array.isArray(data) && data.length > 0) {
-        // Hitung jarak riil tiap tempat terhadap titik pusat pencarian
+        // Calculate exact distance relative to active search center
         const mapped = data.map(item => {
           let itemLat = item.lat
           let itemLng = item.lng
@@ -892,14 +891,14 @@ const handleSearch = async () => {
       } else {
         allScrapedLeads.value = []
         leads.value = []
-        showToast('Tidak ada tempat yang ditemukan untuk pencarian ini.')
+        showToast('No places found for this search.')
       }
     } else {
-      showToast('Gagal menghubungi live scraper API.')
+      showToast('Unable to connect to search service.')
     }
   } catch (err) {
     console.error('Live search error:', err)
-    showToast('Terjadi kesalahan saat memproses live scraper.')
+    showToast('An error occurred during search.')
   } finally {
     isSearching.value = false
     if (leafletMap) {
@@ -912,7 +911,7 @@ const handleSearch = async () => {
 const exportToCsv = () => {
   if (leads.value.length === 0) return
 
-  const headers = ['No', 'Nama Tempat', 'Kategori', 'Rating', 'Ulasan', 'Alamat', 'Jarak', 'WhatsApp', 'Status Buka', 'Jam Operasional', 'Tarif & Layanan', 'Google Maps URL']
+  const headers = ['No', 'Business Name', 'Category', 'Rating', 'Reviews', 'Address', 'Distance', 'WhatsApp / Phone', 'Status', 'Hours', 'Services & Pricing', 'Google Maps URL']
   const rows = leads.value.map((l, i) => [
     i + 1,
     `"${l.name.replace(/"/g, '""')}"`,
@@ -922,7 +921,7 @@ const exportToCsv = () => {
     `"${l.address.replace(/"/g, '""')}"`,
     `"${l.distanceText}"`,
     `"${l.phoneFormatted}"`,
-    l.isOpen ? 'Buka' : 'Tutup',
+    l.isOpen ? 'Open' : 'Closed',
     `"${l.hours}"`,
     `"${l.priceRange} - ${l.features.replace(/"/g, '""')}"`,
     `"${l.maps_url || ''}"`
@@ -936,7 +935,7 @@ const exportToCsv = () => {
   link.click()
   document.body.removeChild(link)
 
-  showToast('File CSV berisi data Google Maps riil berhasil diunduh.')
+  showToast('CSV export downloaded successfully.')
 }
 
 const copyAllContacts = () => {
@@ -947,7 +946,7 @@ const copyAllContacts = () => {
 
   navigator.clipboard.writeText(text).then(() => {
     copiedContacts.value = true
-    showToast('Nomor kontak berhasil disalin ke clipboard.')
+    showToast('Contacts copied to clipboard.')
     setTimeout(() => {
       copiedContacts.value = false
     }, 2000)
@@ -956,7 +955,7 @@ const copyAllContacts = () => {
 
 const copyText = (txt) => {
   navigator.clipboard.writeText(txt).then(() => {
-    showToast(`Disalin: ${txt}`)
+    showToast(`Copied: ${txt}`)
   })
 }
 
@@ -967,15 +966,15 @@ const openLeadDetails = (lead) => {
 const saveLeadAsNote = (lead) => {
   const noteData = {
     title: lead.name,
-    content: `Alamat: ${lead.address}\nWhatsApp: ${lead.phoneFormatted}\nRating: ★ ${lead.rating} (${lead.reviews} ulasan)\nJarak: ${lead.distanceText}\nLayanan: ${lead.features}\nTarif: ${lead.priceRange}\nGoogle Maps: ${lead.maps_url || '-'}\nCatatan: ${lead.customNote || '-'}`,
-    tags: ['Lead', 'Google Maps', searchKeyword.value]
+    content: `Address: ${lead.address}\nWhatsApp: ${lead.phoneFormatted}\nRating: ★ ${lead.rating} (${lead.reviews} reviews)\nDistance: ${lead.distanceText}\nServices: ${lead.features}\nPricing: ${lead.priceRange}\nGoogle Maps: ${lead.maps_url || '-'}\nNotes: ${lead.customNote || '-'}`,
+    tags: ['Lead', 'Places', searchKeyword.value]
   }
 
   try {
     const local = localStorage.getItem('taskflow_quick_notes')
     let notes = local ? JSON.parse(local) : []
     const now = new Date()
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     const dateStr = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`
 
     notes.unshift({
@@ -987,9 +986,9 @@ const saveLeadAsNote = (lead) => {
       updatedAt: dateStr
     })
     localStorage.setItem('taskflow_quick_notes', JSON.stringify(notes))
-    showToast(`Tersimpan ke Quick Notes.`)
+    showToast(`Saved to Quick Notes.`)
   } catch (e) {
-    showToast('Catatan disimpan.')
+    showToast('Note saved.')
   }
 
   emit('save-to-notes', noteData)
@@ -1062,7 +1061,7 @@ const handleKeydown = (e) => {
 const getUserCurrentLocation = (isUserTriggered = false) => {
   if (!navigator.geolocation) {
     if (isUserTriggered) {
-      showToast('Browser Anda tidak mendukung deteksi lokasi.')
+      showToast('Geolocation is not supported by your browser.')
     }
     return
   }
@@ -1103,7 +1102,7 @@ const getUserCurrentLocation = (isUserTriggered = false) => {
       }
 
       if (!resolvedAddress) {
-        resolvedAddress = `Lokasi Riil (${lat.toFixed(4)}, ${lng.toFixed(4)})`
+        resolvedAddress = `Current Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`
       }
 
       if (isUserTriggered) {
@@ -1116,7 +1115,7 @@ const getUserCurrentLocation = (isUserTriggered = false) => {
         lng
       }
 
-      // Hanya hitung ulang jarak data jika ada hasil pencarian
+      // Recalculate distances if results exist
       if (hasSearched.value && leads.value.length > 0) {
         recalculateLeadDistances(lat, lng)
       }
@@ -1131,20 +1130,20 @@ const getUserCurrentLocation = (isUserTriggered = false) => {
 
       isLocating.value = false
       if (isUserTriggered) {
-        showToast(`Lokasi diperbarui ke: ${resolvedAddress}`)
+        showToast(`Location updated to: ${resolvedAddress}`)
       }
     },
     (error) => {
       isLocating.value = false
       console.warn('Geolocation error:', error)
       if (isUserTriggered) {
-        let errMessage = 'Gagal mendeteksi lokasi GPS.'
+        let errMessage = 'Unable to detect location.'
         if (error.code === 1) {
-          errMessage = 'Izin akses lokasi ditolak oleh browser.'
+          errMessage = 'Location permission was denied.'
         } else if (error.code === 2) {
-          errMessage = 'Posisi GPS sedang tidak tersedia.'
+          errMessage = 'Location position is currently unavailable.'
         } else if (error.code === 3) {
-          errMessage = 'Permintaan waktu lokasi habis (timeout).'
+          errMessage = 'Location request timed out.'
         }
         showToast(errMessage)
       }
