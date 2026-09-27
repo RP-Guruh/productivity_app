@@ -120,6 +120,11 @@
           <RssFeed @save-to-notes="handleSaveRssToNotes" />
         </div>
 
+        <!-- ================= LEAD GENERATOR MODULE ================= -->
+        <div v-else-if="currentMenu === 'leads'" class="module-container animate-fade-in">
+          <LeadGenerator @save-to-notes="handleSaveRssToNotes" />
+        </div>
+
         <!-- ================= MOCK SETTINGS MODULE ================= -->
         <div v-else-if="currentMenu === 'settings'" class="module-container animate-fade-in">
           <div class="settings-module">
@@ -182,7 +187,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useBoardStore } from '../store/boardStore'
 import { useAuthStore } from '../store/authStore'
 import AppButton from '../components/common/AppButton.vue'
@@ -194,8 +199,10 @@ import AppAvatar from '../components/common/AppAvatar.vue'
 import ThemeToggle from '../components/common/ThemeToggle.vue'
 import QuickNotes from '../components/dashboard/QuickNotes.vue'
 import RssFeed from '../components/dashboard/RssFeed.vue'
+import LeadGenerator from '../components/dashboard/LeadGenerator.vue'
 
 const router = useRouter()
+const route = useRoute()
 const boardStore = useBoardStore()
 const authStore = useAuthStore()
 
@@ -242,6 +249,7 @@ const handleSaveRssToNotes = (noteData) => {
 
 const menuItems = [
   { id: 'tasks', label: 'Task Management', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>' },
+  { id: 'leads', label: 'Lead Generator', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>', badge: 'Baru' },
   { id: 'notes', label: 'Quick Notes', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>' },
   { id: 'rss', label: 'RSS Feed Reader', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg>' },
   { id: 'settings', label: 'Pengaturan', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>' }
@@ -254,10 +262,16 @@ const currentMenuLabel = computed(() => {
 const selectMenu = (menuId) => {
   currentMenu.value = menuId
   isSidebarOpen.value = false
+  router.replace({ query: { ...route.query, tab: menuId } })
 }
 
 // Boards Logic
 onMounted(() => {
+  if (route.path === '/lead-generator' || route.query.tab === 'leads') {
+    currentMenu.value = 'leads'
+  } else if (route.query.tab) {
+    currentMenu.value = route.query.tab
+  }
   boardStore.fetchBoards()
 })
 

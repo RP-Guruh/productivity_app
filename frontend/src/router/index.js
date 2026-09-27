@@ -14,6 +14,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/lead-generator',
+    name: 'LeadGenerator',
+    component: BoardsOverview,
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/board/:id',
     name: 'BoardDetail',
     component: BoardDetail,

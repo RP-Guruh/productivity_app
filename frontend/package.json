@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "leaflet": "^1.9.4",
     "marked": "^18.0.9",
     "perfect-debounce": "^2.1.0",
     "pinia": "^4.0.2",
