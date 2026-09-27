@@ -141,7 +141,7 @@ async function scrapeLive(keyword, location, limit = 20) {
       let phoneFound = '';
 
       for (const line of detailLines) {
-        const text = line.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim();
+        const text = line.replace(/[\uE000-\uF8FF]/g, '').replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim();
         if (!text) continue;
 
         const phoneMatch = text.match(/(?:\+62|08|\(0\d{2,3}\))\s?[0-9\s-]{6,14}/);
@@ -152,7 +152,8 @@ async function scrapeLive(keyword, location, limit = 20) {
         if (text.includes('·') || text.includes('•')) {
           const parts = text.split(/[·•]/).map(s => s.trim());
           for (const p of parts) {
-            let cleanP = p.replace(/\d+([.,]\d+)?\(\d+\)/g, '')
+            let cleanP = p.replace(/[\uE000-\uF8FF]/g, '')
+                          .replace(/\d+([.,]\d+)?\(\d+\)/g, '')
                           .replace(name, '')
                           .replace(/^\d+([.,]\d+)?\s*/, '')
                           .replace(/^Tidak ada ulasan\s*/i, '')
@@ -161,7 +162,7 @@ async function scrapeLive(keyword, location, limit = 20) {
               category = cleanP;
             }
             if (!address && (p.toLowerCase().includes('jl') || p.toLowerCase().includes('raya') || p.toLowerCase().includes('rt ') || p.toLowerCase().includes('rw ') || p.toLowerCase().includes('blok') || p.toLowerCase().includes('no.') || p.toLowerCase().includes('kec') || p.toLowerCase().includes('kel'))) {
-              address = p.replace(/Tutup.*$/i, '').replace(/Buka.*$/i, '').trim();
+              address = p.replace(/[\uE000-\uF8FF]/g, '').replace(/Tutup.*$/i, '').replace(/Buka.*$/i, '').trim();
             }
           }
         } else if (!address && (text.toLowerCase().includes('jl.') || text.toLowerCase().includes('jl ') || text.toLowerCase().includes('rt ') || text.toLowerCase().includes('rw '))) {

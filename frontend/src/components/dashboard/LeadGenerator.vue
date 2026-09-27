@@ -172,43 +172,88 @@
       <div class="map-canvas" ref="mapContainerRef"></div>
 
       <!-- Active Pin Drawer / Popover (bottom right) -->
-      <div class="active-place-card" v-if="selectedLead">
-        <div class="place-header">
-          <div>
-            <span class="place-category">{{ selectedLead.category }}</span>
-            <h4 class="place-name">{{ selectedLead.name }}</h4>
+      <transition name="card-pop">
+        <div class="active-place-card" v-if="selectedLead">
+          <!-- Subtle Glow Accent -->
+          <div class="card-glow-bg"></div>
+
+          <div class="place-header">
+            <div class="header-badges">
+              <span class="place-category-chip">
+                {{ (selectedLead.category || 'Tempat Usaha').replace(/[\uE000-\uF8FF]/g, '').trim() }}
+              </span>
+              <span class="status-pill" :class="selectedLead.isOpen ? 'is-open' : 'is-closed'">
+                <span class="status-dot"></span>
+                {{ selectedLead.isOpen ? 'Buka' : 'Tutup' }}
+              </span>
+              <span class="gmaps-chip" v-if="selectedLead.isRealGoogleMaps">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Google Maps
+              </span>
+            </div>
+            <button class="btn-close-card" @click="selectedLead = null" aria-label="Tutup" title="Tutup">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
           </div>
-          <button class="btn-close-card" @click="selectedLead = null" aria-label="Tutup">✕</button>
+
+          <h4 class="place-name">{{ selectedLead.name }}</h4>
+
+          <div class="place-address-row">
+            <svg class="addr-pin-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span class="place-address-text">{{ selectedLead.address }}</span>
+          </div>
+
+          <!-- Highlight Metric Chips -->
+          <div class="place-chips-row">
+            <div class="metric-chip rating-chip">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <span>{{ selectedLead.rating }}</span>
+              <span class="chip-sub">({{ selectedLead.reviews }} ulasan)</span>
+            </div>
+
+            <div class="metric-chip distance-chip">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+              <span>{{ selectedLead.distanceText }}</span>
+            </div>
+          </div>
+
+          <!-- Action Buttons Stack -->
+          <div class="place-action-stack">
+            <!-- Primary WhatsApp Button -->
+            <a 
+              v-if="selectedLead.phoneRaw"
+              :href="'https://wa.me/' + selectedLead.phoneRaw" 
+              target="_blank" 
+              class="btn-wa-primary"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+              </svg>
+              <span class="wa-main-text">Hubungi via WhatsApp</span>
+              <span class="wa-sub-text" v-if="selectedLead.phoneFormatted">({{ selectedLead.phoneFormatted }})</span>
+            </a>
+
+            <!-- Secondary Actions Grid -->
+            <div class="secondary-btn-grid">
+              <a 
+                v-if="selectedLead.maps_url" 
+                :href="selectedLead.maps_url" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                class="btn-action-ghost"
+                title="Buka langsung di Google Maps"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                <span>Google Maps</span>
+              </a>
+              <button class="btn-action-ghost" @click="openLeadDetails(selectedLead)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <span>Detail Tempat</span>
+              </button>
+            </div>
+          </div>
         </div>
-        <p class="place-address">{{ selectedLead.address }}</p>
-        <div class="place-details">
-          <span>★ {{ selectedLead.rating }} ({{ selectedLead.reviews }} ulasan)</span>
-          <span>•</span>
-          <span>Jarak {{ selectedLead.distanceText }}</span>
-          <span>•</span>
-          <span :class="selectedLead.isOpen ? 'status-open' : 'status-closed'">
-            {{ selectedLead.isOpen ? 'Buka' : 'Tutup' }}
-          </span>
-        </div>
-        <div class="place-actions">
-          <a :href="'https://wa.me/' + selectedLead.phoneRaw" target="_blank" class="btn-whatsapp">
-            Hubungi WhatsApp ({{ selectedLead.phoneFormatted }})
-          </a>
-          <a 
-            v-if="selectedLead.maps_url" 
-            :href="selectedLead.maps_url" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            class="btn-subtle-sm"
-            title="Buka langsung di Google Maps"
-          >
-            Buka di Google Maps ↗
-          </a>
-          <button class="btn-subtle-sm" @click="openLeadDetails(selectedLead)">
-            Lihat Rincian
-          </button>
-        </div>
-      </div>
+      </transition>
     </div>
 
     <!-- Table Section -->
@@ -1584,97 +1629,275 @@ onBeforeUnmount(() => {
   z-index: 1003;
 }
 
-/* Active Place Drawer on Map */
+/* Active Place Floating Card - Luxury Glassmorphic Design */
 .active-place-card {
   position: absolute;
-  bottom: 16px;
-  right: 16px;
-  width: 320px;
-  background: var(--color-panel);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 14px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  bottom: 20px;
+  right: 20px;
+  width: 360px;
+  max-width: calc(100% - 40px);
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 20px;
+  padding: 18px 20px;
+  box-shadow: 0 24px 50px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
   z-index: 1000;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-glow-bg {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(15, 23, 42, 0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 .place-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 6px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
-.place-category {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--color-brand);
+.header-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.place-name {
-  font-size: 14px;
+.place-category-chip {
+  font-size: 10.5px;
   font-weight: 700;
-  color: var(--color-ink);
-  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.18);
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  padding: 3px 8px;
+  border-radius: 9999px;
+  line-height: 1.2;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  line-height: 1.2;
+}
+
+.status-pill.is-open {
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-pill.is-closed {
+  background: rgba(239, 68, 68, 0.16);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.gmaps-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 3px 7px;
+  border-radius: 9999px;
 }
 
 .btn-close-card {
-  background: none;
-  border: none;
-  font-size: 13px;
-  color: var(--color-muted);
-  cursor: pointer;
-}
-
-.place-address {
-  font-size: 11px;
-  color: var(--color-muted);
-  line-height: 1.4;
-  margin-bottom: 8px;
-}
-
-.place-details {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
   display: flex;
   align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.btn-close-card:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transform: scale(1.08);
+}
+
+.place-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.35;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.2px;
+}
+
+.place-address-row {
+  display: flex;
+  align-items: flex-start;
   gap: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--color-ink);
   margin-bottom: 12px;
 }
 
-.status-open { color: #27ae60; font-weight: 600; }
-.status-closed { color: #e74c3c; font-weight: 600; }
+.addr-pin-icon {
+  flex-shrink: 0;
+  color: #94a3b8;
+  margin-top: 2px;
+}
 
-.place-actions {
+.place-address-text {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
+.place-chips-row {
   display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.metric-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rating-chip {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.chip-sub {
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.distance-chip {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.place-action-stack {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-.btn-whatsapp {
-  flex: 1;
-  display: inline-flex;
+.btn-wa-primary {
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: #27ae60;
-  color: #FFFFFF;
+  gap: 8px;
+  width: 100%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff !important;
   text-decoration: none;
-  font-size: 11px;
+  padding: 10px 14px;
+  border-radius: 12px;
   font-weight: 600;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  transition: all 0.25s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.btn-subtle-sm {
-  background: var(--color-paper);
-  border: 1px solid var(--color-border);
-  color: var(--color-ink);
-  font-size: 11px;
+.btn-wa-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+  filter: brightness(1.06);
+}
+
+.wa-main-text {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+.wa-sub-text {
+  font-size: 12px;
   font-weight: 500;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
+  opacity: 0.92;
+}
+
+.secondary-btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btn-action-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 10px;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-action-ghost:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* Card pop transition */
+.card-pop-enter-active,
+.card-pop-leave-active {
+  transition: all 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-pop-enter-from,
+.card-pop-leave-to {
+  opacity: 0;
+  transform: translateY(14px) scale(0.96);
 }
 
 /* Table Section */
