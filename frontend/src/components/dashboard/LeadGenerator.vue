@@ -454,12 +454,12 @@ const exampleSearches = [
   { keyword: 'Bengkel Motor', location: 'Sawangan Depok', radius: 3 }
 ]
 
-// Clean Minimalist Map Tiles (CartoDB Positron - Ultra clear, modern and crisp)
-const CLEAN_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-const CLEAN_TILE_OPTIONS = {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  subdomains: 'abcd',
-  maxZoom: 20
+// OpenStreetMap Tile Layer (100% Free, Tanpa API Key)
+const OSM_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+const OSM_TILE_OPTIONS = {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  subdomains: ['a', 'b', 'c'],
+  maxZoom: 19
 }
 
 // Realistic Indonesian Barber Dataset for Cipayung Depok
@@ -618,8 +618,8 @@ const initMap = () => {
     zoomControl: true
   })
 
-  // Basemap CartoDB Positron: Super bersih, jernih, dan modern
-  currentTileLayer = L.tileLayer(CLEAN_TILE_URL, CLEAN_TILE_OPTIONS).addTo(leafletMap)
+  // Basemap OpenStreetMap (100% Free, Tanpa API Key)
+  currentTileLayer = L.tileLayer(OSM_TILE_URL, OSM_TILE_OPTIONS).addTo(leafletMap)
 
   leadMarkersGroup = L.layerGroup().addTo(leafletMap)
 
@@ -2067,6 +2067,11 @@ onBeforeUnmount(() => {
 :deep(.leaflet-clean-pin) {
   background: transparent;
   border: none;
+}
+
+/* Subtle clean tone on OpenStreetMap tiles */
+:deep(.leaflet-tile-pane) {
+  filter: contrast(1.02) saturate(0.88) brightness(1.02);
 }
 
 :deep(.map-pin-center) {
