@@ -1,373 +1,287 @@
 <template>
-  <div class="lead-generator animate-fade-in">
-    <!-- Top Header & Actions -->
-    <div class="lead-header-banner">
-      <div class="banner-content">
-        <div class="badge-tag">
-          <span class="pulse-dot"></span>
-          <span>Market Explorer & Visual Prospecting</span>
-        </div>
-        <h2 class="banner-title">🎯 Lead Generator & Pemetaan Bisnis</h2>
-        <p class="banner-subtitle">
-          Temukan calon prospek, tempat usaha, dan kompetitor di sekitar wilayah target dengan radius akurat dan data kontak siap pakai.
-        </p>
+  <div class="lead-page">
+    <!-- Header -->
+    <div class="page-header">
+      <div>
+        <h2 class="title">Lead Generator</h2>
+        <p class="subtitle">Cari tempat usaha dan data kontak di sekitar lokasi target.</p>
       </div>
 
-      <div class="banner-actions">
-        <button class="btn-action-outline" @click="exportToCsv" :disabled="leads.length === 0" title="Download data dalam format Excel / CSV">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          <span>Ekspor CSV</span>
+      <div class="header-actions">
+        <button class="btn-subtle" @click="copyAllContacts" :disabled="leads.length === 0" title="Salin nomor kontak">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span>{{ copiedContacts ? 'Tersalin' : 'Salin Kontak' }}</span>
         </button>
-        <button class="btn-action-outline" @click="copyAllContacts" :disabled="leads.length === 0" title="Salin semua nomor kontak ke clipboard">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-          <span>{{ copiedContacts ? 'Tersalin! ✓' : 'Salin Kontak' }}</span>
+        <button class="btn-subtle" @click="exportToCsv" :disabled="leads.length === 0" title="Download data CSV">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Unduh CSV</span>
         </button>
       </div>
     </div>
 
-    <!-- Search Controls Card -->
-    <div class="search-panel-card">
-      <form @submit.prevent="handleSearch" class="search-form-grid">
-        <!-- Field 1: Category / Keyword -->
-        <div class="form-group-field">
-          <label class="field-label">
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <span>Jenis Tempat / Kata Kunci</span>
-          </label>
-          <div class="input-icon-wrapper">
+    <!-- Search Box -->
+    <div class="search-card">
+      <form @submit.prevent="handleSearch" class="search-bar">
+        <div class="search-field flex-2">
+          <label>Kategori / Tempat</label>
+          <div class="input-wrap">
+            <svg class="field-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <input 
               type="text" 
               v-model="searchKeyword" 
-              class="custom-input" 
-              placeholder="Contoh: Tukang Cukur, Coffee Shop, Bengkel..."
+              placeholder="misal: Tukang Cukur, Barbershop, Kafe..."
               required
             />
-            <button v-if="searchKeyword" type="button" class="clear-input-btn" @click="searchKeyword = ''">✕</button>
           </div>
         </div>
 
-        <!-- Field 2: Location Free-text -->
-        <div class="form-group-field">
-          <label class="field-label">
-            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-            <span>Lokasi / Wilayah</span>
-          </label>
-          <div class="input-icon-wrapper">
+        <div class="search-field flex-2">
+          <label>Lokasi / Alamat</label>
+          <div class="input-wrap">
+            <svg class="field-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
             <input 
               type="text" 
               v-model="searchLocation" 
-              class="custom-input" 
-              placeholder="Contoh: Cipayung Depok, Tebet, Margonda..."
+              placeholder="misal: Cipayung Depok, Tebet, Margonda..."
               required
             />
-            <button v-if="searchLocation" type="button" class="clear-input-btn" @click="searchLocation = ''">✕</button>
           </div>
         </div>
 
-        <!-- Field 3: Radius Slider & Presets -->
-        <div class="form-group-field radius-field">
-          <div class="radius-header">
-            <label class="field-label">
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
-              <span>Radius Jangkauan</span>
-            </label>
-            <span class="radius-badge">{{ searchRadius }} KM</span>
-          </div>
-
-          <div class="radius-control-row">
-            <input 
-              type="range" 
-              min="0.5" 
-              max="10" 
-              step="0.5" 
-              v-model.number="searchRadius" 
-              class="radius-slider"
-              @input="onRadiusChange"
-            />
-            <div class="radius-presets">
-              <button 
-                v-for="r in [1, 2, 3, 5, 8]" 
-                :key="r" 
-                type="button" 
-                :class="['preset-chip', { active: searchRadius === r }]"
-                @click="searchRadius = r; onRadiusChange()"
-              >
-                {{ r }} km
-              </button>
-            </div>
+        <div class="search-field radius-select-field">
+          <label>Radius</label>
+          <div class="input-wrap">
+            <select v-model.number="searchRadius" @change="onRadiusChange">
+              <option :value="1">1 km</option>
+              <option :value="2">2 km</option>
+              <option :value="3">3 km</option>
+              <option :value="5">5 km</option>
+              <option :value="10">10 km</option>
+            </select>
           </div>
         </div>
 
-        <!-- Submit Button -->
-        <div class="form-group-action">
-          <button type="submit" class="search-submit-btn" :disabled="isSearching">
-            <svg v-if="!isSearching" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <span v-else class="spinner-small"></span>
-            <span>{{ isSearching ? 'Memetakan...' : 'Cari Prospek' }}</span>
+        <div class="search-action">
+          <button type="submit" class="btn-primary" :disabled="isSearching">
+            <svg v-if="!isSearching" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <span v-else class="btn-spinner"></span>
+            <span>{{ isSearching ? 'Mencari...' : 'Cari' }}</span>
           </button>
         </div>
       </form>
 
-      <!-- Suggested Quick Scenarios -->
-      <div class="scenario-suggestions">
-        <span class="scenario-label">Rekomendasi Skenario Cepat:</span>
-        <div class="scenario-chips">
-          <button 
-            v-for="(sc, idx) in scenarioPresets" 
-            :key="idx" 
-            type="button" 
-            class="scenario-pill"
-            @click="applyScenario(sc)"
-          >
-            <span>{{ sc.icon }}</span>
-            <span class="sc-title">{{ sc.keyword }}</span>
-            <span class="sc-loc">di {{ sc.location }}</span>
-          </button>
-        </div>
+      <!-- Quick Examples -->
+      <div class="quick-examples">
+        <span class="label">Contoh:</span>
+        <button 
+          v-for="(item, i) in exampleSearches" 
+          :key="i"
+          type="button" 
+          class="example-tag"
+          @click="applyExample(item)"
+        >
+          {{ item.keyword }} di {{ item.location }}
+        </button>
       </div>
     </div>
 
-    <!-- Summary KPI Cards -->
-    <div class="stats-overview-grid" v-if="leads.length > 0">
-      <div class="kpi-card">
-        <div class="kpi-icon-box brand">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-        </div>
-        <div class="kpi-content">
-          <span class="kpi-label">Total Lead Ditemukan</span>
-          <div class="kpi-number">{{ leads.length }} Bisnis</div>
-          <span class="kpi-sub">Sesuai kriteria radius</span>
-        </div>
+    <!-- Metrics Bar -->
+    <div class="metrics-bar" v-if="leads.length > 0">
+      <div class="metric-item">
+        <span class="metric-label">Hasil</span>
+        <span class="metric-value">{{ leads.length }} tempat</span>
       </div>
-
-      <div class="kpi-card">
-        <div class="kpi-icon-box success">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-        </div>
-        <div class="kpi-content">
-          <span class="kpi-label">Radius Pemetaan</span>
-          <div class="kpi-number">{{ searchRadius }} KM</div>
-          <span class="kpi-sub">Pusat: {{ currentSearchPoint.name }}</span>
-        </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-label">Pusat Lokasi</span>
+        <span class="metric-value">{{ currentSearchPoint.name }}</span>
       </div>
-
-      <div class="kpi-card">
-        <div class="kpi-icon-box warning">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-        </div>
-        <div class="kpi-content">
-          <span class="kpi-label">Rata-rata Rating</span>
-          <div class="kpi-number">⭐ {{ averageRating }} / 5.0</div>
-          <span class="kpi-sub">Dari {{ totalReviewsCount }} ulasan konsumen</span>
-        </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-label">Radius</span>
+        <span class="metric-value">{{ searchRadius }} km</span>
       </div>
-
-      <div class="kpi-card">
-        <div class="kpi-icon-box signal">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-        </div>
-        <div class="kpi-content">
-          <span class="kpi-label">Kelengkapan Kontak</span>
-          <div class="kpi-number">{{ verifiedPhonePercentage }}%</div>
-          <span class="kpi-sub">Tersedia kontak WhatsApp aktif</span>
-        </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-label">Rata-rata Rating</span>
+        <span class="metric-value">★ {{ averageRating }} / 5.0</span>
+      </div>
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-label">Ada No. Kontak</span>
+        <span class="metric-value">{{ leadsWithPhoneCount }} dari {{ leads.length }} tempat</span>
       </div>
     </div>
 
-    <!-- MAP CONTAINER SECTION -->
-    <div class="map-view-wrapper">
-      <div class="map-toolbar-header">
-        <div class="map-toolbar-left">
-          <span class="map-title-icon">🗺️</span>
-          <h3 class="map-section-title">Pemetaan Wilayah & Radius Jangkauan</h3>
-          <span class="map-subtitle">({{ searchKeyword }} di {{ searchLocation }})</span>
+    <!-- Map View -->
+    <div class="map-card">
+      <div class="map-header">
+        <div class="map-title-row">
+          <span class="dot-indicator"></span>
+          <span class="map-title">Peta Persebaran & Radius</span>
+          <span class="map-meta">({{ searchKeyword }} di sekitar {{ searchLocation }})</span>
         </div>
 
-        <div class="map-toolbar-right">
-          <div class="tile-provider-selector">
-            <span class="provider-label">Layer Peta:</span>
-            <select v-model="selectedTileProvider" @change="changeTileLayer" class="provider-select">
-              <option value="osm">🗺️ OpenStreetMap (Tanpa API Key)</option>
-              <option value="esri">🌐 Esri World Map (Tanpa API Key)</option>
-              <option value="carto">🧭 Carto Light (Tanpa API Key)</option>
+        <div class="map-controls">
+          <div class="layer-control">
+            <span>Tampilan:</span>
+            <select v-model="selectedTileProvider" @change="changeTileLayer">
+              <option value="osm">OpenStreetMap</option>
+              <option value="esri">Esri Jalanan</option>
+              <option value="carto">Carto Sederhana</option>
             </select>
           </div>
-          <button class="map-control-btn" @click="recenterMap" title="Pusatkan peta ke target radius">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
-            <span>Pusatkan Peta</span>
+          <button class="btn-map-tool" @click="recenterMap" title="Pusatkan kembali ke radius pencarian">
+            Pusatkan
           </button>
-          <div class="map-legend">
-            <span class="legend-item"><span class="legend-dot center"></span> Titik Pencarian</span>
-            <span class="legend-item"><span class="legend-dot lead"></span> Lokasi Lead</span>
-            <span class="legend-item"><span class="legend-circle"></span> Lingkaran Radius</span>
-          </div>
         </div>
       </div>
 
-      <!-- Leaflet Map Mount Point -->
-      <div class="leaflet-map-element" ref="mapContainerRef"></div>
+      <!-- Map Element -->
+      <div class="map-canvas" ref="mapContainerRef"></div>
 
-      <!-- Floating Map Info Badge -->
-      <div class="map-floating-overlay" v-if="selectedLead">
-        <div class="floating-lead-info">
-          <div class="floating-header">
-            <span class="floating-badge">{{ selectedLead.category }}</span>
-            <button class="close-floating-btn" @click="selectedLead = null">✕</button>
+      <!-- Active Pin Drawer / Popover (bottom right) -->
+      <div class="active-place-card" v-if="selectedLead">
+        <div class="place-header">
+          <div>
+            <span class="place-category">{{ selectedLead.category }}</span>
+            <h4 class="place-name">{{ selectedLead.name }}</h4>
           </div>
-          <h4 class="floating-title">{{ selectedLead.name }}</h4>
-          <p class="floating-address">{{ selectedLead.address }}</p>
-          <div class="floating-meta">
-            <span class="meta-rating">⭐ {{ selectedLead.rating }} ({{ selectedLead.reviews }} ulasan)</span>
-            <span class="meta-distance">📍 {{ selectedLead.distanceText }}</span>
-          </div>
-          <div class="floating-actions">
-            <a :href="'https://wa.me/' + selectedLead.phoneRaw" target="_blank" class="btn-wa-sm">
-              💬 WhatsApp
-            </a>
-            <button class="btn-detail-sm" @click="openLeadDetails(selectedLead)">
-              Detail Lengkap
-            </button>
-          </div>
+          <button class="btn-close-card" @click="selectedLead = null" aria-label="Tutup">✕</button>
+        </div>
+        <p class="place-address">{{ selectedLead.address }}</p>
+        <div class="place-details">
+          <span>★ {{ selectedLead.rating }} ({{ selectedLead.reviews }} ulasan)</span>
+          <span>•</span>
+          <span>Jarak {{ selectedLead.distanceText }}</span>
+          <span>•</span>
+          <span :class="selectedLead.isOpen ? 'status-open' : 'status-closed'">
+            {{ selectedLead.isOpen ? 'Buka' : 'Tutup' }}
+          </span>
+        </div>
+        <div class="place-actions">
+          <a :href="'https://wa.me/' + selectedLead.phoneRaw" target="_blank" class="btn-whatsapp">
+            Hubungi WhatsApp ({{ selectedLead.phoneFormatted }})
+          </a>
+          <button class="btn-subtle-sm" @click="openLeadDetails(selectedLead)">
+            Lihat Rincian
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- LEADS DATA TABLE SECTION -->
-    <div class="leads-table-container">
-      <div class="table-header-row">
-        <div class="table-title-area">
-          <h3 class="table-section-title">
-            <span>Daftar Informasi Prospek / Tempat Terpetakan</span>
-            <span class="table-count-badge">{{ filteredLeads.length }} Data</span>
-          </h3>
-          <p class="table-section-desc">
-            Informasi detail bisnis, alamat, kontak WhatsApp, kisaran tarif, dan estimasi jarak dari pusat pencarian.
-          </p>
+    <!-- Table Section -->
+    <div class="table-card">
+      <div class="table-header">
+        <div>
+          <h3 class="table-title">Daftar Tempat Usaha</h3>
+          <p class="table-subtitle">Klik salah satu baris untuk melihat posisinya di peta.</p>
         </div>
 
-        <div class="table-filter-area">
-          <div class="table-search-box">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input 
-              type="text" 
-              v-model="tableFilterText" 
-              placeholder="Saring hasil di tabel..."
-              class="table-search-input"
-            />
-          </div>
+        <div class="table-search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input 
+            type="text" 
+            v-model="tableFilterText" 
+            placeholder="Saring nama, alamat, atau layanan..."
+          />
         </div>
       </div>
 
-      <!-- Main Data Table -->
-      <div class="table-responsive-wrapper">
-        <table class="leads-table">
+      <div class="table-wrapper">
+        <table class="data-table">
           <thead>
             <tr>
-              <th style="width: 45px;">#</th>
-              <th>Nama Bisnis & Kategori</th>
-              <th style="width: 140px;">Rating & Ulasan</th>
-              <th>Alamat Lengkap</th>
-              <th style="width: 110px;">Jarak</th>
-              <th style="width: 160px;">Kontak WhatsApp</th>
+              <th style="width: 40px;">No</th>
+              <th>Nama Tempat</th>
+              <th style="width: 130px;">Rating</th>
+              <th>Alamat</th>
+              <th style="width: 100px;">Jarak</th>
+              <th style="width: 170px;">WhatsApp / Telepon</th>
               <th style="width: 130px;">Jam Buka</th>
-              <th style="width: 170px;">Kisaran Harga</th>
-              <th style="width: 130px; text-align: center;">Aksi</th>
+              <th>Perkiraan Tarif & Layanan</th>
+              <th style="width: 90px; text-align: center;">Aksi</th>
             </tr>
           </thead>
           <tbody>
             <tr 
-              v-for="(lead, index) in filteredLeads" 
+              v-for="(lead, idx) in filteredLeads" 
               :key="lead.id" 
-              :class="{ 'row-active': selectedLead?.id === lead.id }"
+              :class="{ 'is-selected': selectedLead?.id === lead.id }"
               @click="focusLeadOnMap(lead)"
             >
-              <td class="col-num">{{ index + 1 }}</td>
+              <td class="cell-index">{{ idx + 1 }}</td>
               
-              <!-- Business Name & Category -->
-              <td class="col-biz">
-                <div class="biz-name-wrapper">
-                  <div class="biz-avatar">{{ lead.icon }}</div>
-                  <div class="biz-info">
-                    <span class="biz-title">{{ lead.name }}</span>
-                    <span class="biz-badge">{{ lead.category }}</span>
-                  </div>
+              <!-- Nama -->
+              <td class="cell-name">
+                <div class="name-box">
+                  <span class="place-title">{{ lead.name }}</span>
+                  <span class="place-sub">{{ lead.category }}</span>
                 </div>
               </td>
 
               <!-- Rating -->
-              <td class="col-rating">
-                <div class="rating-box">
-                  <span class="stars-val">⭐ {{ lead.rating }}</span>
-                  <span class="reviews-count">({{ lead.reviews }} ulasan)</span>
+              <td class="cell-rating">
+                <div class="rating-display">
+                  <span class="rating-stars">★ {{ lead.rating }}</span>
+                  <span class="review-count">({{ lead.reviews }})</span>
                 </div>
               </td>
 
-              <!-- Address -->
-              <td class="col-address">
-                <div class="address-text" :title="lead.address">
-                  {{ lead.address }}
-                </div>
+              <!-- Alamat -->
+              <td class="cell-address">
+                <span class="text-clamp">{{ lead.address }}</span>
               </td>
 
-              <!-- Distance -->
-              <td class="col-distance">
-                <span class="distance-pill">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
-                  {{ lead.distanceText }}
-                </span>
+              <!-- Jarak -->
+              <td class="cell-distance">
+                <span class="distance-tag">{{ lead.distanceText }}</span>
               </td>
 
-              <!-- Contact -->
-              <td class="col-contact">
-                <div class="contact-box" @click.stop>
-                  <a :href="'https://wa.me/' + lead.phoneRaw" target="_blank" class="wa-link" title="Buka Chat WhatsApp">
-                    <span class="wa-icon">🟢</span>
-                    <span class="wa-number">{{ lead.phoneFormatted }}</span>
+              <!-- Kontak -->
+              <td class="cell-contact" @click.stop>
+                <div class="contact-row">
+                  <a :href="'https://wa.me/' + lead.phoneRaw" target="_blank" class="contact-link" title="Kirim Pesan WhatsApp">
+                    {{ lead.phoneFormatted }}
                   </a>
-                  <button class="copy-cell-btn" @click="copyText(lead.phoneFormatted)" title="Salin nomor">
-                    📋
+                  <button class="btn-copy-inline" @click="copyText(lead.phoneFormatted)" title="Salin nomor">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                   </button>
                 </div>
               </td>
 
-              <!-- Status & Hours -->
-              <td class="col-hours">
-                <span :class="['status-chip', lead.isOpen ? 'open' : 'closed']">
-                  {{ lead.isOpen ? '● Buka' : '○ Tutup' }}
+              <!-- Jam Operasional -->
+              <td class="cell-hours">
+                <span :class="['badge-status', lead.isOpen ? 'open' : 'closed']">
+                  {{ lead.isOpen ? 'Buka' : 'Tutup' }}
                 </span>
-                <span class="hours-text">{{ lead.hours }}</span>
+                <span class="hours-sub">{{ lead.hours }}</span>
               </td>
 
-              <!-- Price & Services -->
-              <td class="col-price">
-                <div class="price-range">{{ lead.priceRange }}</div>
-                <div class="features-list">{{ lead.features }}</div>
+              <!-- Layanan & Tarif -->
+              <td class="cell-services">
+                <div class="price-val">{{ lead.priceRange }}</div>
+                <div class="service-desc">{{ lead.features }}</div>
               </td>
 
-              <!-- Actions -->
-              <td class="col-actions" @click.stop>
-                <div class="row-actions">
-                  <button class="btn-tbl-icon" @click="focusLeadOnMap(lead)" title="Lihat di Peta">
-                    📍
+              <!-- Aksi -->
+              <td class="cell-actions" @click.stop>
+                <div class="action-btn-group">
+                  <button class="btn-icon" @click="focusLeadOnMap(lead)" title="Lihat di Peta">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                   </button>
-                  <button class="btn-tbl-icon" @click="openLeadDetails(lead)" title="Detail Lengkap">
-                    ℹ️
-                  </button>
-                  <button class="btn-tbl-icon" @click="saveLeadAsNote(lead)" title="Simpan ke Quick Notes">
-                    📌
+                  <button class="btn-icon" @click="openLeadDetails(lead)" title="Detail">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                   </button>
                 </div>
               </td>
             </tr>
 
-            <!-- Empty Row if No Filter Match -->
+            <!-- Baris Kosong jika filter tidak cocok -->
             <tr v-if="filteredLeads.length === 0">
-              <td colspan="9" class="empty-table-cell">
-                <div class="empty-table-state">
-                  <span>🔍</span>
-                  <p>Tidak ada lead yang cocok dengan filter pencarian tabel.</p>
-                  <button class="btn-action-outline" @click="tableFilterText = ''">Reset Filter</button>
-                </div>
+              <td colspan="9" class="cell-empty">
+                <p>Tidak ada hasil yang sesuai dengan kata kunci pencarian tabel.</p>
+                <button class="btn-subtle-sm" @click="tableFilterText = ''">Hapus Filter</button>
               </td>
             </tr>
           </tbody>
@@ -375,82 +289,78 @@
       </div>
     </div>
 
-    <!-- Lead Detail Modal -->
-    <div class="lead-modal-backdrop" v-if="detailModalLead" @click.self="detailModalLead = null">
-      <div class="lead-modal-card animate-scale-up">
-        <div class="modal-top">
-          <div class="modal-category-tag">{{ detailModalLead.category }}</div>
-          <button class="modal-close-btn" @click="detailModalLead = null">✕</button>
+    <!-- Modal Detail Tempat -->
+    <div class="modal-backdrop" v-if="detailModalLead" @click.self="detailModalLead = null">
+      <div class="modal-card">
+        <div class="modal-head">
+          <div>
+            <span class="modal-badge">{{ detailModalLead.category }}</span>
+            <h3 class="modal-title">{{ detailModalLead.name }}</h3>
+          </div>
+          <button class="btn-close-modal" @click="detailModalLead = null">✕</button>
         </div>
 
-        <div class="modal-body-content">
-          <div class="modal-title-row">
-            <span class="modal-avatar">{{ detailModalLead.icon }}</span>
-            <div>
-              <h3 class="modal-title">{{ detailModalLead.name }}</h3>
-              <div class="modal-rating">
-                <span>⭐ {{ detailModalLead.rating }} dari 5.0</span>
-                <span>• {{ detailModalLead.reviews }} ulasan di Google Maps</span>
-              </div>
-            </div>
+        <div class="modal-content">
+          <div class="info-row">
+            <span class="info-label">Alamat</span>
+            <span class="info-value">{{ detailModalLead.address }}</span>
           </div>
 
-          <div class="modal-info-grid">
-            <div class="modal-info-item">
-              <span class="m-label">Alamat Lengkap</span>
-              <p class="m-val">{{ detailModalLead.address }}</p>
-            </div>
+          <div class="info-row">
+            <span class="info-label">Jarak</span>
+            <span class="info-value">{{ detailModalLead.distanceText }} dari pusat pencarian</span>
+          </div>
 
-            <div class="modal-info-item">
-              <span class="m-label">Jarak dari Titik Pusat</span>
-              <p class="m-val">{{ detailModalLead.distanceText }} (Radius {{ searchRadius }} KM)</p>
-            </div>
+          <div class="info-row">
+            <span class="info-label">Rating</span>
+            <span class="info-value">★ {{ detailModalLead.rating }} ({{ detailModalLead.reviews }} ulasan di Google Maps)</span>
+          </div>
 
-            <div class="modal-info-item">
-              <span class="m-label">Kontak WhatsApp / Telp</span>
-              <p class="m-val phone-link">
-                <a :href="'https://wa.me/' + detailModalLead.phoneRaw" target="_blank">
-                  {{ detailModalLead.phoneFormatted }} (Chat Langsung)
-                </a>
-              </p>
-            </div>
+          <div class="info-row">
+            <span class="info-label">Kontak WhatsApp</span>
+            <span class="info-value">
+              <a :href="'https://wa.me/' + detailModalLead.phoneRaw" target="_blank" class="contact-link">
+                {{ detailModalLead.phoneFormatted }}
+              </a>
+            </span>
+          </div>
 
-            <div class="modal-info-item">
-              <span class="m-label">Status & Jam Operasional</span>
-              <p class="m-val">{{ detailModalLead.isOpen ? 'Sedang Buka' : 'Tutup' }} • {{ detailModalLead.hours }}</p>
-            </div>
+          <div class="info-row">
+            <span class="info-label">Jam Operasional</span>
+            <span class="info-value">{{ detailModalLead.isOpen ? 'Sedang Buka' : 'Tutup' }} • {{ detailModalLead.hours }}</span>
+          </div>
 
-            <div class="modal-info-item full">
-              <span class="m-label">Estimasi Harga & Layanan Unggulan</span>
-              <p class="m-val highlight">{{ detailModalLead.priceRange }} — {{ detailModalLead.features }}</p>
-            </div>
+          <div class="info-row">
+            <span class="info-label">Tarif & Layanan</span>
+            <span class="info-value">{{ detailModalLead.priceRange }} ({{ detailModalLead.features }})</span>
+          </div>
 
-            <div class="modal-info-item full">
-              <span class="m-label">Catatan Follow-up Prospek</span>
-              <textarea 
-                v-model="detailModalLead.customNote" 
-                class="modal-textarea" 
-                placeholder="Tulis catatan prospek di sini (misal: Sudah dihubungi via WA, tertarik penawaran kerjasama, dll)..."
-              ></textarea>
-            </div>
+          <div class="info-row full-width">
+            <span class="info-label">Catatan Tambahan</span>
+            <textarea 
+              v-model="detailModalLead.customNote" 
+              class="notes-input" 
+              placeholder="Tambahkan catatan khusus untuk tempat ini..."
+              rows="3"
+            ></textarea>
           </div>
         </div>
 
-        <div class="modal-footer-row">
-          <button class="btn-modal-sec" @click="detailModalLead = null">Tutup</button>
-          <button class="btn-modal-pri" @click="saveLeadAsNote(detailModalLead)">
-            📌 Simpan ke Quick Notes
+        <div class="modal-foot">
+          <button class="btn-subtle" @click="detailModalLead = null">Tutup</button>
+          <button class="btn-secondary" @click="saveLeadAsNote(detailModalLead)">
+            Simpan ke Quick Notes
           </button>
-          <a :href="'https://wa.me/' + detailModalLead.phoneRaw" target="_blank" class="btn-modal-wa">
-            💬 Buka WhatsApp
+          <a :href="'https://wa.me/' + detailModalLead.phoneRaw" target="_blank" class="btn-primary">
+            Kirim WhatsApp
           </a>
         </div>
       </div>
     </div>
 
     <!-- Toast Notification -->
-    <div class="toast-notification" v-if="toastMessage">
-      <span>{{ toastMessage }}</span>
+    <div class="toast" v-if="toastMessage">
+      {{ toastMessage }}
     </div>
   </div>
 </template>
@@ -460,13 +370,12 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
-// Emits to allow saving to notes in BoardsOverview
 const emit = defineEmits(['save-to-notes'])
 
-// Search States
+// Search inputs
 const searchKeyword = ref('Tukang Cukur')
 const searchLocation = ref('Cipayung Depok')
-const searchRadius = ref(3) // in KM
+const searchRadius = ref(3)
 const isSearching = ref(false)
 const copiedContacts = ref(false)
 const tableFilterText = ref('')
@@ -474,211 +383,186 @@ const selectedLead = ref(null)
 const detailModalLead = ref(null)
 const toastMessage = ref('')
 
-// Map References
+// Map setup
 const mapContainerRef = ref(null)
 let leafletMap = null
 let radiusCircleLayer = null
 let centerMarkerLayer = null
 let leadMarkersGroup = null
+let currentTileLayer = null
 
-// Current center coordinates (Default: Cipayung, Kota Depok: -6.4255, 106.8150)
+// Current center coordinates (Cipayung Depok)
 const currentSearchPoint = ref({
-  name: 'Cipayung, Kota Depok',
+  name: 'Cipayung, Depok',
   lat: -6.4255,
   lng: 106.8150
 })
 
-// Scenario Presets
-const scenarioPresets = [
-  { icon: '💈', keyword: 'Tukang Cukur', location: 'Cipayung Depok', radius: 3 },
-  { icon: '☕', keyword: 'Coffee Shop', location: 'Tebet Jakarta Selatan', radius: 2.5 },
-  { icon: '🍜', keyword: 'Kuliner & Cafe', location: 'Margonda Depok', radius: 4 },
-  { icon: '🚗', keyword: 'Bengkel Mobil', location: 'Fatmawati Jakarta', radius: 3.5 },
-  { icon: '🏥', keyword: 'Apotek & Klinik', location: 'Sawangan Depok', radius: 5 }
+// Quick example suggestions
+const exampleSearches = [
+  { keyword: 'Tukang Cukur', location: 'Cipayung Depok', radius: 3 },
+  { keyword: 'Coffee Shop', location: 'Tebet Jakarta', radius: 2 },
+  { keyword: 'Kuliner', location: 'Margonda Depok', radius: 4 },
+  { keyword: 'Bengkel Motor', location: 'Sawangan Depok', radius: 3 }
 ]
 
-// Primary Pre-defined Datasets for realistic scenarios
+// Tile Providers (No API Key Required)
+const selectedTileProvider = ref('osm')
+const TILE_PROVIDERS = {
+  osm: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    options: {
+      attribution: '&copy; OpenStreetMap contributors',
+      subdomains: ['a', 'b', 'c'],
+      maxZoom: 19
+    }
+  },
+  esri: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    options: {
+      attribution: 'Tiles &copy; Esri',
+      maxZoom: 18
+    }
+  },
+  carto: {
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    options: {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }
+  }
+}
+
+// Realistic Indonesian Barber Dataset for Cipayung Depok
 const MOCK_DATASETS = {
-  // Scenario 1: Tukang Cukur di Cipayung Depok
   'tukang cukur_cipayung depok': {
-    center: { name: 'Cipayung, Kota Depok', lat: -6.4255, lng: 106.8150 },
+    center: { name: 'Cipayung, Depok', lat: -6.4255, lng: 106.8150 },
     items: [
       {
-        id: 'lead-tc-1',
+        id: 'tc-1',
         name: 'Captain Barbershop Cipayung',
-        category: 'Modern Barbershop',
-        icon: '💈',
+        category: 'Barbershop',
         rating: 4.9,
         reviews: 248,
-        address: 'Jl. Raya Cipayung No. 28, RT 02/RW 04, Cipayung, Kota Depok',
+        address: 'Jl. Raya Cipayung No. 28, RT 02/RW 04, Cipayung, Depok',
         distanceKm: 0.45,
-        distanceText: '450 meter',
+        distanceText: '450 m',
         lat: -6.4231,
         lng: 106.8142,
         phoneRaw: '6281288997711',
-        phoneFormatted: '0812-8899-7711',
+        phoneFormatted: '+62 812-8899-7711',
         isOpen: true,
-        hours: '09:00 - 21:30 WIB',
-        priceRange: 'Rp 45.000 - Rp 75.000',
-        features: 'Full AC, Cuci Rambut, Hot Towel, Free Pomade, Free Wi-Fi'
+        hours: '09.00 - 21.30 WIB',
+        priceRange: 'Rp 45.000 - Rp 70.000',
+        features: 'Potong rambut, cuci rambut, pijat kepala, pomade'
       },
       {
-        id: 'lead-tc-2',
-        name: 'Pangkas Rambut Asli Garut Barokah',
+        id: 'tc-2',
+        name: 'Pangkas Rambut Barokah Garut',
         category: 'Pangkas Tradisional',
-        icon: '✂️',
         rating: 4.8,
         reviews: 135,
-        address: 'Jl. Jembatan Serong RT 03/RW 02, Cipayung, Kota Depok',
+        address: 'Jl. Jembatan Serong RT 03/RW 02, Cipayung, Depok',
         distanceKm: 0.78,
-        distanceText: '780 meter',
+        distanceText: '780 m',
         lat: -6.4278,
         lng: 106.8165,
         phoneRaw: '6285712349876',
-        phoneFormatted: '0857-1234-9876',
+        phoneFormatted: '+62 857-1234-9876',
         isOpen: true,
-        hours: '08:00 - 22:00 WIB',
-        priceRange: 'Rp 20.000 - Rp 30.000',
-        features: 'Cukur Cepat Rapi, Pijat Leher Tradisional, Ramah Anak'
+        hours: '08.00 - 22.00 WIB',
+        priceRange: 'Rp 20.000 - Rp 25.000',
+        features: 'Potong rambut pria & anak, cukur jenggot, pijat leher'
       },
       {
-        id: 'lead-tc-3',
-        name: "D'Kins Barbershop & Studio",
-        category: 'Barbershop & Grooming',
-        icon: '💈',
+        id: 'tc-3',
+        name: "D'Kins Barbershop",
+        category: 'Barbershop',
         rating: 4.7,
         reviews: 98,
-        address: 'Jl. Pitara Raya No. 88, Cipayung Jaya, Kec. Cipayung, Depok',
+        address: 'Jl. Pitara Raya No. 88, Cipayung Jaya, Depok',
         distanceKm: 1.1,
-        distanceText: '1.1 KM',
+        distanceText: '1,1 km',
         lat: -6.4215,
         lng: 106.8192,
         phoneRaw: '6281390112233',
-        phoneFormatted: '0813-9011-2233',
+        phoneFormatted: '+62 813-9011-2233',
         isOpen: true,
-        hours: '10:00 - 21:00 WIB',
+        hours: '10.00 - 21.00 WIB',
         priceRange: 'Rp 35.000 - Rp 60.000',
-        features: 'Hair Coloring, Hair Tattoo, Ruang Tunggu Nyaman, Audio Musik'
+        features: 'Hair cut, styling, coloring, cuci rambut'
       },
       {
-        id: 'lead-tc-4',
+        id: 'tc-4',
         name: 'Retro Fade Barbershop',
-        category: 'Premium Cuts',
-        icon: '💈',
+        category: 'Barbershop',
         rating: 4.9,
         reviews: 182,
-        address: 'Jl. Raya Citayam No. 105, Cipayung, Kota Depok',
+        address: 'Jl. Raya Citayam No. 105, Cipayung, Depok',
         distanceKm: 1.35,
-        distanceText: '1.35 KM',
+        distanceText: '1,3 km',
         lat: -6.4312,
         lng: 106.8115,
         phoneRaw: '6282144556677',
-        phoneFormatted: '0821-4455-6677',
+        phoneFormatted: '+62 821-4455-6677',
         isOpen: true,
-        hours: '09:30 - 21:00 WIB',
+        hours: '09.30 - 21.00 WIB',
         priceRange: 'Rp 40.000 - Rp 65.000',
-        features: 'Spesialis Fade Cut, Cuci Rambut, Facial Scrub, Free Teh/Kopi'
+        features: 'Fade cut, taper fade, shaving, hot towel'
       },
       {
-        id: 'lead-tc-5',
+        id: 'tc-5',
         name: 'Pangkas Rambut Madura Bintang Jaya',
         category: 'Pangkas Tradisional',
-        icon: '✂️',
         rating: 4.6,
         reviews: 64,
-        address: 'Jl. Bulak Barat No. 12, Cipayung, Kota Depok',
+        address: 'Jl. Bulak Barat No. 12, Cipayung, Depok',
         distanceKm: 1.6,
-        distanceText: '1.6 KM',
+        distanceText: '1,6 km',
         lat: -6.4262,
         lng: 106.8225,
         phoneRaw: '6287833445566',
-        phoneFormatted: '0878-3344-5566',
+        phoneFormatted: '+62 878-3344-5566',
         isOpen: true,
-        hours: '07:30 - 22:30 WIB',
+        hours: '07.30 - 22.30 WIB',
         priceRange: 'Rp 18.000 - Rp 25.000',
-        features: 'Buka Pagi Sampai Malam, Murah & Bersih, Parkir Motor Luas'
+        features: 'Potong rambut rapi, kumis, jenggot'
       },
       {
-        id: 'lead-tc-6',
-        name: 'Gentleman & Co Grooming Hub',
-        category: 'Executive Barbershop',
-        icon: '💈',
+        id: 'tc-6',
+        name: 'Gentleman Cut Barbershop',
+        category: 'Barbershop',
         rating: 4.8,
         reviews: 210,
-        address: 'Jl. Raya Cipayung Jembatan Serong KM 2 No. 5, Kota Depok',
+        address: 'Jl. Cipayung Raya KM 2 No. 5, Depok',
         distanceKm: 1.9,
-        distanceText: '1.9 KM',
+        distanceText: '1,9 km',
         lat: -6.4185,
         lng: 106.8095,
         phoneRaw: '6281277889900',
-        phoneFormatted: '0812-7788-9900',
+        phoneFormatted: '+62 812-7788-9900',
         isOpen: false,
-        hours: '11:00 - 22:00 WIB (Buka jam 11:00)',
-        priceRange: 'Rp 50.000 - Rp 90.000',
-        features: 'Shaving Master, Head Massage, Beard Oil Treatment, Ruang VIP'
-      }
-    ]
-  },
-
-  // Scenario 2: Coffee Shop di Tebet
-  'coffee shop_tebet jakarta selatan': {
-    center: { name: 'Tebet, Jakarta Selatan', lat: -6.2372, lng: 106.8528 },
-    items: [
-      {
-        id: 'lead-cs-1',
-        name: 'Kopi Kenari Tebet Timur',
-        category: 'Specialty Coffee',
-        icon: '☕',
-        rating: 4.8,
-        reviews: 512,
-        address: 'Jl. Tebet Timur Dalam Raya No. 45, Jakarta Selatan',
-        distanceKm: 0.35,
-        distanceText: '350 meter',
-        lat: -6.2361,
-        lng: 106.8539,
-        phoneRaw: '6281122334455',
-        phoneFormatted: '0811-2233-4455',
-        isOpen: true,
-        hours: '08:00 - 23:00 WIB',
-        priceRange: 'Rp 25.000 - Rp 55.000',
-        features: 'Outdoor Garden, Wi-Fi 100Mbps, Stopkontak Tiap Meja, Mocktails'
-      },
-      {
-        id: 'lead-cs-2',
-        name: 'Seduh Silang Coffee & Roastery',
-        category: 'Artisan Cafe',
-        icon: '☕',
-        rating: 4.9,
-        reviews: 320,
-        address: 'Jl. Tebet Barat IX No. 12, Tebet, Jakarta Selatan',
-        distanceKm: 0.8,
-        distanceText: '800 meter',
-        lat: -6.2395,
-        lng: 106.8505,
-        phoneRaw: '6281988776655',
-        phoneFormatted: '0819-8877-6655',
-        isOpen: true,
-        hours: '07:00 - 22:00 WIB',
-        priceRange: 'Rp 30.000 - Rp 65.000',
-        features: 'Single Origin Beans, Manual Brew V60, Pastry Fresh, Live Roasting'
+        hours: '11.00 - 22.00 WIB (Buka jam 11.00)',
+        priceRange: 'Rp 50.000 - Rp 85.000',
+        features: 'Paket komplit, cuci rambut, pijat, vitamin'
       }
     ]
   }
 }
 
-// Current Active Leads List
 const leads = ref([])
 
-// Computed Statistics
+// Computed Metrics
 const filteredLeads = computed(() => {
   if (!tableFilterText.value.trim()) return leads.value
-  const query = tableFilterText.value.toLowerCase().trim()
+  const q = tableFilterText.value.toLowerCase().trim()
   return leads.value.filter(item => 
-    item.name.toLowerCase().includes(query) ||
-    item.address.toLowerCase().includes(query) ||
-    item.category.toLowerCase().includes(query) ||
-    item.phoneFormatted.includes(query) ||
-    item.features.toLowerCase().includes(query)
+    item.name.toLowerCase().includes(q) ||
+    item.address.toLowerCase().includes(q) ||
+    item.category.toLowerCase().includes(q) ||
+    item.phoneFormatted.includes(q) ||
+    item.features.toLowerCase().includes(q)
   )
 })
 
@@ -688,47 +572,40 @@ const averageRating = computed(() => {
   return (sum / leads.value.length).toFixed(1)
 })
 
-const totalReviewsCount = computed(() => {
-  return leads.value.reduce((acc, curr) => acc + curr.reviews, 0)
+const leadsWithPhoneCount = computed(() => {
+  return leads.value.filter(l => l.phoneRaw).length
 })
 
-const verifiedPhonePercentage = computed(() => {
-  if (leads.value.length === 0) return 0
-  const count = leads.value.filter(l => l.phoneRaw).length
-  return Math.round((count / leads.value.length) * 100)
-})
-
-// Tile Providers (100% Free & No API Key Required)
-const selectedTileProvider = ref('osm')
-let currentTileLayer = null
-
-const TILE_PROVIDERS = {
-  osm: {
-    name: 'OpenStreetMap',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    options: {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      subdomains: ['a', 'b', 'c'],
-      maxZoom: 19
-    }
-  },
-  esri: {
-    name: 'Esri World Street Map',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-    options: {
-      attribution: 'Tiles &copy; Esri &mdash; Sources: Esri, USGS, NOAA',
-      maxZoom: 18
-    }
-  },
-  carto: {
-    name: 'Carto Light',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    options: {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }
+// Map Initialization
+const initMap = () => {
+  if (!mapContainerRef.value) return
+  if (leafletMap) {
+    leafletMap.remove()
+    leafletMap = null
   }
+
+  leafletMap = L.map(mapContainerRef.value, {
+    center: [currentSearchPoint.value.lat, currentSearchPoint.value.lng],
+    zoom: 14,
+    zoomControl: true
+  })
+
+  // OpenStreetMap tile layer (No API key)
+  const prov = TILE_PROVIDERS[selectedTileProvider.value] || TILE_PROVIDERS.osm
+  currentTileLayer = L.tileLayer(prov.url, prov.options).addTo(leafletMap)
+
+  leadMarkersGroup = L.layerGroup().addTo(leafletMap)
+
+  renderCenterAndRadius()
+  renderLeadMarkers()
+
+  // Invalidate size to ensure proper rendering
+  setTimeout(() => {
+    if (leafletMap) leafletMap.invalidateSize()
+  }, 150)
+  setTimeout(() => {
+    if (leafletMap) leafletMap.invalidateSize()
+  }, 500)
 }
 
 const changeTileLayer = () => {
@@ -740,95 +617,47 @@ const changeTileLayer = () => {
   currentTileLayer = L.tileLayer(prov.url, prov.options).addTo(leafletMap)
 }
 
-// Initialize Map
-const initMap = () => {
-  if (!mapContainerRef.value) return
-  if (leafletMap) {
-    leafletMap.remove()
-    leafletMap = null
-  }
-
-  // Create Leaflet instance
-  leafletMap = L.map(mapContainerRef.value, {
-    center: [currentSearchPoint.value.lat, currentSearchPoint.value.lng],
-    zoom: 14,
-    zoomControl: true
-  })
-
-  // Add Default Free OpenStreetMap Tile Layer (NO API KEY REQUIRED)
-  const prov = TILE_PROVIDERS[selectedTileProvider.value] || TILE_PROVIDERS.osm
-  currentTileLayer = L.tileLayer(prov.url, prov.options).addTo(leafletMap)
-
-  // Initialize Layer Groups
-  leadMarkersGroup = L.layerGroup().addTo(leafletMap)
-
-  // Render search center and radius
-  renderCenterAndRadius()
-
-  // Render initial leads markers
-  renderLeadMarkers()
-
-  // Ensure size is properly computed even if rendered inside a tab or after animations
-  setTimeout(() => {
-    if (leafletMap) leafletMap.invalidateSize()
-  }, 100)
-  setTimeout(() => {
-    if (leafletMap) leafletMap.invalidateSize()
-  }, 400)
-  setTimeout(() => {
-    if (leafletMap) leafletMap.invalidateSize()
-  }, 1000)
-}
-
-// Render Search Center Marker and Radius Circle
 const renderCenterAndRadius = () => {
   if (!leafletMap) return
-
-  // Remove existing center layers if present
   if (radiusCircleLayer) leafletMap.removeLayer(radiusCircleLayer)
   if (centerMarkerLayer) leafletMap.removeLayer(centerMarkerLayer)
 
   const { lat, lng, name } = currentSearchPoint.value
-  const radiusInMeters = searchRadius.value * 1000
+  const radiusMeters = searchRadius.value * 1000
 
-  // 1. Draw Radius Circle
+  // Radius perimeter circle
   radiusCircleLayer = L.circle([lat, lng], {
-    radius: radiusInMeters,
-    color: '#3E4C8A',
-    fillColor: '#3E4C8A',
-    fillOpacity: 0.12,
-    weight: 2,
-    dashArray: '6, 8'
+    radius: radiusMeters,
+    color: '#2C3E50',
+    weight: 1.5,
+    dashArray: '5, 5',
+    fillColor: '#34495E',
+    fillOpacity: 0.08
   }).addTo(leafletMap)
 
-  // 2. Center Marker with Ripple Pulse HTML
+  // Clean center icon
   const centerIconHtml = `
-    <div class="custom-center-pin">
-      <div class="pulse-ring"></div>
-      <div class="pin-core">🎯</div>
+    <div class="map-pin-center">
+      <div class="pin-dot"></div>
     </div>
   `
   const centerIcon = L.divIcon({
     html: centerIconHtml,
-    className: 'custom-leaflet-div-icon',
-    iconSize: [40, 40],
-    iconAnchor: [20, 20]
+    className: 'leaflet-clean-pin',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
   })
 
   centerMarkerLayer = L.marker([lat, lng], { icon: centerIcon })
     .bindPopup(`
-      <div style="font-family: inherit; font-size: 13px; text-align: center; padding: 4px;">
-        <strong style="color: #3E4C8A; font-size: 14px;">📍 Titik Pencarian</strong>
-        <p style="margin: 4px 0 0 0; color: #555;">${name}</p>
-        <div style="margin-top: 6px; font-size: 11px; background: #EEF2FF; color: #3730A3; padding: 2px 6px; border-radius: 4px; display: inline-block;">
-          Radius: ${searchRadius.value} KM
-        </div>
+      <div style="font-size: 12px; line-height: 1.4;">
+        <strong>Pusat Pencarian:</strong><br/>${name}<br/>
+        <span style="color: #666;">Radius ${searchRadius.value} km</span>
       </div>
     `)
     .addTo(leafletMap)
 }
 
-// Render Pins for each lead
 const renderLeadMarkers = () => {
   if (!leafletMap || !leadMarkersGroup) return
   leadMarkersGroup.clearLayers()
@@ -836,85 +665,70 @@ const renderLeadMarkers = () => {
   leads.value.forEach((lead, idx) => {
     const isSelected = selectedLead.value?.id === lead.id
     const pinHtml = `
-      <div class="custom-lead-pin ${isSelected ? 'active-pin' : ''}">
-        <span class="pin-icon">${lead.icon || '💈'}</span>
-        <span class="pin-index">${idx + 1}</span>
+      <div class="map-lead-marker ${isSelected ? 'is-active' : ''}">
+        <span>${idx + 1}</span>
       </div>
     `
     const leadIcon = L.divIcon({
       html: pinHtml,
-      className: 'custom-leaflet-div-icon',
-      iconSize: [36, 42],
-      iconAnchor: [18, 42],
-      popupAnchor: [0, -40]
+      className: 'leaflet-clean-pin',
+      iconSize: [28, 34],
+      iconAnchor: [14, 34],
+      popupAnchor: [0, -32]
     })
 
     const marker = L.marker([lead.lat, lead.lng], { icon: leadIcon })
 
-    // Popup Content
-    const popupContent = `
-      <div class="leaflet-popup-card">
-        <div class="pop-header">
-          <span class="pop-cat">${lead.category}</span>
-          <span class="pop-rate">⭐ ${lead.rating}</span>
+    const popupHtml = `
+      <div class="map-popup">
+        <span class="popup-cat">${lead.category}</span>
+        <h4 class="popup-title">${lead.name}</h4>
+        <p class="popup-addr">${lead.address}</p>
+        <div class="popup-meta">
+          <span>★ ${lead.rating}</span>
+          <span>•</span>
+          <span>${lead.distanceText}</span>
         </div>
-        <h4 class="pop-title">${lead.name}</h4>
-        <p class="pop-addr">${lead.address}</p>
-        <div class="pop-meta">
-          <span>📍 ${lead.distanceText}</span>
-          <span style="color: ${lead.isOpen ? '#2F7A5D' : '#888'}">
-            ${lead.isOpen ? '● Buka' : '○ Tutup'}
-          </span>
-        </div>
-        <div class="pop-actions">
-          <a href="https://wa.me/${lead.phoneRaw}" target="_blank" class="pop-btn-wa">
-            💬 Hubungi WA
-          </a>
-        </div>
+        <a href="https://wa.me/${lead.phoneRaw}" target="_blank" class="popup-wa-btn">
+          Chat WhatsApp
+        </a>
       </div>
     `
-    marker.bindPopup(popupContent)
-
+    marker.bindPopup(popupHtml)
     marker.on('click', () => {
       selectedLead.value = lead
-      // Highlight matching row
     })
 
     leadMarkersGroup.addLayer(marker)
   })
 }
 
-// When radius slider changes
 const onRadiusChange = () => {
   if (radiusCircleLayer) {
     radiusCircleLayer.setRadius(searchRadius.value * 1000)
   }
 }
 
-// Recenter Map to fit both radius circle and all markers
 const recenterMap = () => {
   if (!leafletMap) return
   if (radiusCircleLayer) {
-    leafletMap.fitBounds(radiusCircleLayer.getBounds(), { padding: [30, 30] })
+    leafletMap.fitBounds(radiusCircleLayer.getBounds(), { padding: [25, 25] })
   } else {
     leafletMap.setView([currentSearchPoint.value.lat, currentSearchPoint.value.lng], 14)
   }
 }
 
-// Focus a single lead on map
 const focusLeadOnMap = (lead) => {
   selectedLead.value = lead
   if (!leafletMap) return
 
   leafletMap.flyTo([lead.lat, lead.lng], 16, {
     animate: true,
-    duration: 1
+    duration: 0.8
   })
 
-  // Re-render markers to update active pin class
   renderLeadMarkers()
 
-  // Open popup if found
   if (leadMarkersGroup) {
     leadMarkersGroup.eachLayer(layer => {
       const latLng = layer.getLatLng()
@@ -925,97 +739,73 @@ const focusLeadOnMap = (lead) => {
   }
 }
 
-// Dynamic Mock Generator for any custom search query
-const generateDynamicLeads = (keyword, location, count = 6) => {
-  // Hash seed from string
+// Dynamic Mock Fallback for custom queries
+const generateRealisticMock = (keyword, location) => {
   const str = (keyword + location).toLowerCase()
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i)
-    hash |= 0
-  }
-
-  // Base coordinates approximation for known areas or default
   let baseLat = -6.4255
   let baseLng = 106.8150
-  let cleanLocName = location
+  let cleanLoc = location
 
-  if (str.includes('cipayung') || str.includes('depok')) {
-    baseLat = -6.4255; baseLng = 106.8150
-    cleanLocName = 'Cipayung, Kota Depok'
-  } else if (str.includes('tebet') || str.includes('jakarta')) {
+  if (str.includes('tebet') || str.includes('jakarta')) {
     baseLat = -6.2372; baseLng = 106.8528
-    cleanLocName = 'Tebet, Jakarta Selatan'
+    cleanLoc = 'Tebet, Jakarta Selatan'
   } else if (str.includes('margonda')) {
     baseLat = -6.3725; baseLng = 106.8320
-    cleanLocName = 'Margonda Raya, Depok'
-  } else if (str.includes('fatmawati')) {
-    baseLat = -6.2922; baseLng = 106.7972
-    cleanLocName = 'Fatmawati, Jakarta Selatan'
+    cleanLoc = 'Margonda, Depok'
+  } else if (str.includes('sawangan')) {
+    baseLat = -6.4020; baseLng = 106.7780
+    cleanLoc = 'Sawangan, Depok'
   } else if (str.includes('bandung')) {
     baseLat = -6.9175; baseLng = 107.6191
-    cleanLocName = 'Bandung Kota'
-  } else if (str.includes('surabaya')) {
-    baseLat = -7.2575; baseLng = 112.7521
-    cleanLocName = 'Surabaya'
+    cleanLoc = 'Bandung'
   }
 
   currentSearchPoint.value = {
-    name: cleanLocName,
+    name: cleanLoc,
     lat: baseLat,
     lng: baseLng
   }
 
-  const icons = keyword.toLowerCase().includes('cukur') || keyword.toLowerCase().includes('barber')
-    ? ['💈', '✂️', '💈', '💈', '✂️', '💈']
-    : keyword.toLowerCase().includes('kopi') || keyword.toLowerCase().includes('cafe')
-    ? ['☕', '🍵', '☕', '🥐', '☕', '☕']
-    : keyword.toLowerCase().includes('bengkel') || keyword.toLowerCase().includes('motor') || keyword.toLowerCase().includes('mobil')
-    ? ['🔧', '🚗', '🛠️', '🏍️', '⚙️', '🔧']
-    : ['🏢', '🏪', '⭐', '📍', '🛍️', '📦']
+  const names = [
+    `${keyword} Barokah ${location.split(' ')[0]}`,
+    `${keyword} Sumber Rezeki`,
+    `${keyword} Mandiri Jaya`,
+    `${keyword} Sahabat ${location.split(' ')[0]}`,
+    `${keyword} Prima Utama`,
+    `${keyword} Berkah Bersama`
+  ]
 
-  const prefixes = ['Sentosa', 'Prima', 'Bintang', 'Maju Terus', 'Berkah', 'Utama', 'Kencana', 'Modern']
-  const generated = []
-
-  for (let i = 0; i < count; i++) {
-    // Generate slight offset within search radius
-    const angle = (i / count) * 2 * Math.PI + (hash % 10) * 0.1
-    const distRatio = 0.2 + (i / count) * 0.7
+  return names.map((name, i) => {
+    const distRatio = 0.25 + (i * 0.12)
     const distKm = parseFloat((distRatio * searchRadius.value).toFixed(2))
-
-    // approx degrees offset
+    const angle = i * 1.05
     const latOffset = (distKm / 111) * Math.cos(angle)
     const lngOffset = (distKm / (111 * Math.cos(baseLat * Math.PI / 180))) * Math.sin(angle)
+    const rating = (4.6 + (i % 4) * 0.1).toFixed(1)
+    const reviews = 50 + (i * 28)
+    const phone = `0812${String(34567890 + i * 123456).slice(0, 8)}`
 
-    const randomRating = (4.5 + ((i * 3 + 7) % 5) * 0.1).toFixed(1)
-    const randomReviews = 40 + ((i * 37 + hash) % 220)
-    const phoneNum = '0812' + String(10000000 + ((i * 87654321 + Math.abs(hash)) % 89999999))
-
-    generated.push({
-      id: `gen-lead-${i}`,
-      name: `${keyword} ${prefixes[i % prefixes.length]} ${location.split(' ')[0]}`,
+    return {
+      id: `gen-${i}`,
+      name,
       category: `Usaha ${keyword}`,
-      icon: icons[i % icons.length],
-      rating: parseFloat(randomRating),
-      reviews: randomReviews,
-      address: `Jl. Raya ${location} No. ${15 + i * 18}, Kel. ${location}, Jawa Barat`,
+      rating: parseFloat(rating),
+      reviews,
+      address: `Jl. Raya ${location} No. ${10 + i * 14}, ${location}`,
       distanceKm: distKm,
-      distanceText: distKm < 1 ? `${Math.round(distKm * 1000)} meter` : `${distKm} KM`,
+      distanceText: distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm} km`,
       lat: baseLat + latOffset,
       lng: baseLng + lngOffset,
-      phoneRaw: '62' + phoneNum.substring(1),
-      phoneFormatted: phoneNum.replace(/(\d{4})(\d{4})(\d+)/, '$1-$2-$3'),
-      isOpen: i % 5 !== 3,
-      hours: i % 2 === 0 ? '08:00 - 21:00 WIB' : '09:00 - 22:00 WIB',
-      priceRange: 'Rp 25.000 - Rp 65.000',
-      features: 'Pelayanan Ramah, Tempat Nyaman, Pembayaran QRIS/Tunai'
-    })
-  }
-
-  return generated
+      phoneRaw: '62' + phone.substring(1),
+      phoneFormatted: `+62 ${phone.substring(1, 4)}-${phone.substring(4, 8)}-${phone.substring(8)}`,
+      isOpen: i !== 4,
+      hours: '08.30 - 21.00 WIB',
+      priceRange: 'Tarif Terjangkau',
+      features: 'Pelayanan ramah, lokasi strategis'
+    }
+  })
 }
 
-// Perform Search Action
 const handleSearch = () => {
   isSearching.value = true
   selectedLead.value = null
@@ -1023,17 +813,14 @@ const handleSearch = () => {
   setTimeout(() => {
     const key = `${searchKeyword.value.toLowerCase().trim()}_${searchLocation.value.toLowerCase().trim()}`
     
-    // Check if preset matches exactly
     if (MOCK_DATASETS[key]) {
       const data = MOCK_DATASETS[key]
       currentSearchPoint.value = { ...data.center }
       leads.value = [...data.items]
     } else {
-      // Dynamic realistic generator
-      leads.value = generateDynamicLeads(searchKeyword.value, searchLocation.value, 6)
+      leads.value = generateRealisticMock(searchKeyword.value, searchLocation.value)
     }
 
-    // Refresh map position
     if (leafletMap) {
       leafletMap.setView([currentSearchPoint.value.lat, currentSearchPoint.value.lng], 14)
       renderCenterAndRadius()
@@ -1042,23 +829,21 @@ const handleSearch = () => {
     }
 
     isSearching.value = false
-    showToast(`✓ Berhasil memetakan ${leads.value.length} prospek di ${searchLocation.value}`)
-  }, 450)
+    showToast(`Ditemukan ${leads.value.length} tempat di ${searchLocation.value}`)
+  }, 350)
 }
 
-// Apply quick scenario
-const applyScenario = (scenario) => {
-  searchKeyword.value = scenario.keyword
-  searchLocation.value = scenario.location
-  searchRadius.value = scenario.radius
+const applyExample = (item) => {
+  searchKeyword.value = item.keyword
+  searchLocation.value = item.location
+  searchRadius.value = item.radius
   handleSearch()
 }
 
-// Export to CSV
 const exportToCsv = () => {
   if (leads.value.length === 0) return
 
-  const headers = ['No', 'Nama Bisnis', 'Kategori', 'Rating', 'Jumlah Ulasan', 'Alamat', 'Jarak (KM)', 'WhatsApp', 'Status Buka', 'Jam Buka', 'Harga & Layanan']
+  const headers = ['No', 'Nama Tempat', 'Kategori', 'Rating', 'Ulasan', 'Alamat', 'Jarak', 'WhatsApp', 'Status Buka', 'Jam Operasional', 'Tarif & Layanan']
   const rows = leads.value.map((l, i) => [
     i + 1,
     `"${l.name.replace(/"/g, '""')}"`,
@@ -1066,7 +851,7 @@ const exportToCsv = () => {
     l.rating,
     l.reviews,
     `"${l.address.replace(/"/g, '""')}"`,
-    l.distanceKm,
+    `"${l.distanceText}"`,
     `"${l.phoneFormatted}"`,
     l.isOpen ? 'Buka' : 'Tutup',
     `"${l.hours}"`,
@@ -1074,84 +859,77 @@ const exportToCsv = () => {
   ])
 
   const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
-  const encodedUri = encodeURI(csvContent)
   const link = document.createElement('a')
-  link.setAttribute('href', encodedUri)
-  link.setAttribute('download', `Leads_${searchKeyword.value}_${searchLocation.value}.csv`)
+  link.setAttribute('href', encodeURI(csvContent))
+  link.setAttribute('download', `leads_${searchKeyword.value}_${searchLocation.value}.csv`)
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
 
-  showToast('✓ File CSV berhasil diunduh!')
+  showToast('File CSV berhasil diunduh.')
 }
 
-// Copy All Contacts
 const copyAllContacts = () => {
   if (leads.value.length === 0) return
   const text = leads.value
-    .map((l, i) => `${i + 1}. ${l.name} | ${l.phoneFormatted} | ${l.address}`)
+    .map((l, i) => `${i + 1}. ${l.name} - ${l.phoneFormatted} (${l.address})`)
     .join('\n')
 
   navigator.clipboard.writeText(text).then(() => {
     copiedContacts.value = true
-    showToast('✓ Semua nomor kontak disalin ke clipboard!')
+    showToast('Nomor kontak berhasil disalin ke clipboard.')
     setTimeout(() => {
       copiedContacts.value = false
-    }, 2500)
+    }, 2000)
   })
 }
 
-// Copy single string
 const copyText = (txt) => {
   navigator.clipboard.writeText(txt).then(() => {
-    showToast(`✓ Disalin: ${txt}`)
+    showToast(`Disalin: ${txt}`)
   })
 }
 
-// Open Details Modal
 const openLeadDetails = (lead) => {
   detailModalLead.value = { ...lead }
 }
 
-// Save lead as note in QuickNotes
 const saveLeadAsNote = (lead) => {
   const noteData = {
-    title: `Prospek: ${lead.name}`,
-    content: `📍 Alamat: ${lead.address}\n📞 Kontak: ${lead.phoneFormatted} (https://wa.me/${lead.phoneRaw})\n⭐ Rating: ${lead.rating} (${lead.reviews} ulasan)\n📏 Jarak: ${lead.distanceText}\n💵 Tarif: ${lead.priceRange}\n✨ Fasilitas: ${lead.features}\n\nCatatan Follow Up: ${lead.customNote || 'Belum dihubungi'}`,
-    tags: ['Lead', lead.category.split(' ')[0], searchLocation.value.split(' ')[0]]
+    title: lead.name,
+    content: `Alamat: ${lead.address}\nWhatsApp: ${lead.phoneFormatted}\nRating: ★ ${lead.rating} (${lead.reviews} ulasan)\nJarak: ${lead.distanceText}\nLayanan: ${lead.features}\nTarif: ${lead.priceRange}\nCatatan: ${lead.customNote || '-'}`,
+    tags: ['Lead', searchKeyword.value]
   }
 
-  // Also save to localStorage taskflow_quick_notes
   try {
-    const localData = localStorage.getItem('taskflow_quick_notes')
-    let notes = localData ? JSON.parse(localData) : []
+    const local = localStorage.getItem('taskflow_quick_notes')
+    let notes = local ? JSON.parse(local) : []
     const now = new Date()
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-    const dateStr = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}, ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+    const dateStr = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`
 
     notes.unshift({
-      id: 'lead_note_' + Date.now(),
+      id: 'lead_' + Date.now(),
       title: noteData.title,
       content: noteData.content,
       tags: noteData.tags,
-      color: '#3E4C8A', // Brand Blue
+      color: '#34495E',
       updatedAt: dateStr
     })
     localStorage.setItem('taskflow_quick_notes', JSON.stringify(notes))
-    showToast(`✓ Prospek "${lead.name}" disimpan ke Quick Notes!`)
+    showToast(`Tersimpan ke Quick Notes.`)
   } catch (e) {
-    showToast('✓ Berhasil menyimpan catatan')
+    showToast('Catatan disimpan.')
   }
 
   emit('save-to-notes', noteData)
 }
 
-// Show Toast
 const showToast = (msg) => {
   toastMessage.value = msg
   setTimeout(() => {
     toastMessage.value = ''
-  }, 3000)
+  }, 2500)
 }
 
 const handleWindowResize = () => {
@@ -1160,9 +938,7 @@ const handleWindowResize = () => {
   }
 }
 
-// Mount Lifecycle
 onMounted(() => {
-  // Load default scenario: "Tukang Cukur di Cipayung Depok"
   const defaultKey = 'tukang cukur_cipayung depok'
   const defaultData = MOCK_DATASETS[defaultKey]
   currentSearchPoint.value = { ...defaultData.center }
@@ -1185,267 +961,177 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* Main Container */
-.lead-generator {
+.lead-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
   width: 100%;
-  padding-bottom: 40px;
+  padding-bottom: 32px;
 }
 
-/* Header Banner */
-.lead-header-banner {
+/* Header */
+.page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(135deg, rgba(62, 76, 138, 0.08) 0%, rgba(47, 122, 93, 0.08) 100%);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 24px 28px;
-  backdrop-filter: blur(10px);
+  align-items: flex-end;
+  padding-bottom: 4px;
 }
 
-.banner-content {
-  max-width: 680px;
-}
-
-.badge-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--color-panel);
-  border: 1px solid var(--color-border);
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--color-brand);
-  margin-bottom: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-
-.pulse-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--color-success);
-  box-shadow: 0 0 0 0 rgba(47, 122, 93, 0.6);
-  animation: pulse 1.8s infinite;
-}
-
-@keyframes pulse {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 122, 93, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(47, 122, 93, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(47, 122, 93, 0); }
-}
-
-.banner-title {
-  font-size: var(--text-xl);
+.title {
+  font-size: 22px;
   font-weight: 700;
   color: var(--color-ink);
-  margin-bottom: 6px;
-  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
 }
 
-.banner-subtitle {
-  font-size: var(--text-sm);
+.subtitle {
+  font-size: 13px;
   color: var(--color-muted);
-  line-height: 1.5;
 }
 
-.banner-actions {
+.header-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
-.btn-action-outline {
+.btn-subtle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background-color: var(--color-panel);
-  color: var(--color-ink);
+  gap: 6px;
+  background: var(--color-panel);
   border: 1px solid var(--color-border);
-  padding: 9px 16px;
+  color: var(--color-ink);
+  padding: 7px 14px;
   border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: var(--shadow-card);
+  transition: all 0.15s ease;
 }
 
-.btn-action-outline:hover:not(:disabled) {
-  border-color: var(--color-brand);
-  color: var(--color-brand);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-card-hover);
+.btn-subtle:hover:not(:disabled) {
+  border-color: var(--color-ink);
+  background: var(--color-paper);
 }
 
-.btn-action-outline:disabled {
+.btn-subtle:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Search Panel Card */
-.search-panel-card {
-  background-color: var(--color-panel);
+/* Search Card */
+.search-card {
+  background: var(--color-panel);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 22px 24px;
-  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
 
-.search-form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1.3fr auto;
-  gap: 18px;
+.search-bar {
+  display: flex;
+  gap: 14px;
   align-items: flex-end;
+  flex-wrap: wrap;
 }
 
-.form-group-field {
+.search-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  min-width: 180px;
 }
 
-.field-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-sm);
+.search-field.flex-2 {
+  flex: 2;
+}
+
+.search-field.radius-select-field {
+  flex: 1;
+  min-width: 110px;
+}
+
+.search-field label {
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-ink);
 }
 
-.input-icon-wrapper {
+.input-wrap {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.custom-input {
+.input-wrap input,
+.input-wrap select {
   width: 100%;
-  height: 44px;
-  padding: 0 34px 0 14px;
-  background-color: var(--color-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-ink);
-  font-size: var(--text-sm);
-  font-family: inherit;
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.custom-input:focus {
-  border-color: var(--color-brand);
-  box-shadow: 0 0 0 3px rgba(62, 76, 138, 0.15);
-}
-
-.clear-input-btn {
-  position: absolute;
-  right: 10px;
-  background: none;
-  border: none;
-  color: var(--color-muted);
-  cursor: pointer;
-  font-size: 13px;
-  padding: 4px;
-}
-
-.radius-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.radius-badge {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  background: rgba(62, 76, 138, 0.12);
-  color: var(--color-brand);
-  padding: 2px 8px;
-  border-radius: 999px;
-}
-
-.radius-control-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.radius-slider {
-  width: 100%;
-  accent-color: var(--color-brand);
-  cursor: pointer;
-  height: 6px;
-}
-
-.radius-presets {
-  display: flex;
-  gap: 6px;
-}
-
-.preset-chip {
-  flex: 1;
-  padding: 4px 6px;
+  height: 40px;
+  padding: 0 12px 0 34px;
   background: var(--color-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--color-muted);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input-wrap select {
+  padding-left: 12px;
   cursor: pointer;
-  transition: all 0.15s ease;
-  text-align: center;
 }
 
-.preset-chip:hover {
-  border-color: var(--color-brand);
-  color: var(--color-brand);
-}
-
-.preset-chip.active {
-  background-color: var(--color-brand);
-  color: #FFFFFF;
+.input-wrap input:focus,
+.input-wrap select:focus {
   border-color: var(--color-brand);
 }
 
-.search-submit-btn {
+.field-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
+.search-action {
   display: flex;
+  align-items: flex-end;
+}
+
+.btn-primary {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 44px;
-  padding: 0 24px;
-  background-color: var(--color-brand);
+  height: 40px;
+  padding: 0 20px;
+  background: var(--color-brand);
   color: #FFFFFF;
   border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(62, 76, 138, 0.25);
+  text-decoration: none;
+  transition: opacity 0.15s ease;
 }
 
-.search-submit-btn:hover:not(:disabled) {
-  background-color: var(--color-brand-dark);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(62, 76, 138, 0.35);
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
-.search-submit-btn:disabled {
-  opacity: 0.7;
+.btn-primary:disabled {
+  opacity: 0.6;
   cursor: wait;
 }
 
-.spinner-small {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
   border-top-color: #FFFFFF;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -1455,336 +1141,235 @@ onBeforeUnmount(() => {
   to { transform: rotate(360deg); }
 }
 
-/* Scenarios Suggestions */
-.scenario-suggestions {
+.quick-examples {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px dashed var(--color-border);
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
   flex-wrap: wrap;
 }
 
-.scenario-label {
-  font-size: var(--text-xs);
+.quick-examples .label {
+  font-size: 11px;
   color: var(--color-muted);
   font-weight: 500;
 }
 
-.scenario-chips {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.scenario-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+.example-tag {
   background: var(--color-paper);
   border: 1px solid var(--color-border);
+  color: var(--color-ink);
+  font-size: 11px;
+  padding: 3px 10px;
   border-radius: 999px;
-  font-size: var(--text-xs);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
-.scenario-pill:hover {
+.example-tag:hover {
   border-color: var(--color-brand);
-  background: rgba(62, 76, 138, 0.08);
-  transform: translateY(-1px);
+  color: var(--color-brand);
 }
 
-.sc-title {
-  font-weight: 600;
-  color: var(--color-ink);
-}
-
-.sc-loc {
-  color: var(--color-muted);
-}
-
-/* Stats Overview Grid */
-.stats-overview-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+/* Metrics Bar */
+.metrics-bar {
+  display: flex;
+  align-items: center;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 18px;
   gap: 16px;
-}
-
-.kpi-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background-color: var(--color-panel);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 16px 18px;
-  box-shadow: var(--shadow-card);
-}
-
-.kpi-icon-box {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.kpi-icon-box.brand { background: rgba(62, 76, 138, 0.12); color: var(--color-brand); }
-.kpi-icon-box.success { background: rgba(47, 122, 93, 0.12); color: var(--color-success); }
-.kpi-icon-box.warning { background: rgba(184, 134, 11, 0.12); color: var(--color-warning); }
-.kpi-icon-box.signal { background: rgba(232, 86, 47, 0.12); color: var(--color-signal); }
-
-.kpi-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.kpi-label {
-  font-size: 11px;
-  color: var(--color-muted);
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.kpi-number {
-  font-size: var(--text-md);
-  font-weight: 700;
-  color: var(--color-ink);
-  line-height: 1.2;
-  margin: 2px 0;
-}
-
-.kpi-sub {
-  font-size: 11px;
-  color: var(--color-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Map Section */
-.map-view-wrapper {
-  position: relative;
-  background-color: var(--color-panel);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-card);
-}
-
-.map-toolbar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 20px;
-  background-color: var(--color-panel);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.map-toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.map-title-icon {
-  font-size: 18px;
-}
-
-.map-section-title {
-  font-size: var(--text-base);
-  font-weight: 700;
-  color: var(--color-ink);
-}
-
-.map-subtitle {
-  font-size: var(--text-xs);
-  color: var(--color-muted);
-}
-
-.map-toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   flex-wrap: wrap;
 }
 
-.tile-provider-selector {
+.metric-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--color-paper);
-  border: 1px solid var(--color-border);
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
 }
 
-.provider-label {
-  font-size: 11px;
-  color: var(--color-muted);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.provider-select {
-  background: transparent;
-  border: none;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-ink);
-  outline: none;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.map-control-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--color-paper);
-  border: 1px solid var(--color-border);
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--color-ink);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.map-control-btn:hover {
-  background: var(--color-brand);
-  color: #FFFFFF;
-  border-color: var(--color-brand);
-}
-
-.map-legend {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.metric-label {
   font-size: 11px;
   color: var(--color-muted);
 }
 
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+.metric-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-ink);
 }
 
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+.metric-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--color-border);
 }
 
-.legend-dot.center { background: #3E4C8A; }
-.legend-dot.lead { background: #E8562F; }
-
-.legend-circle {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px dashed #3E4C8A;
-}
-
-.leaflet-map-element {
-  width: 100%;
-  height: 420px;
-  background-color: var(--color-paper);
-  z-index: 1;
-}
-
-/* Floating Lead Detail on Map */
-.map-floating-overlay {
-  position: absolute;
-  top: 60px;
-  right: 18px;
-  width: 310px;
-  z-index: 1000;
+/* Map Card */
+.map-card {
+  position: relative;
   background: var(--color-panel);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 16px;
-  box-shadow: var(--shadow-modal);
-  backdrop-filter: blur(12px);
-  animation: slideInRight 0.25s ease;
+  overflow: hidden;
 }
 
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(12px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-.floating-header {
+.map-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-panel);
 }
 
-.floating-badge {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  background: rgba(62, 76, 138, 0.1);
-  color: var(--color-brand);
-  padding: 2px 8px;
-  border-radius: 4px;
+.map-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.close-floating-btn {
-  background: none;
-  border: none;
+.dot-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-brand);
+}
+
+.map-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.map-meta {
+  font-size: 12px;
   color: var(--color-muted);
-  cursor: pointer;
-  font-size: 14px;
 }
 
-.floating-title {
-  font-size: var(--text-sm);
+.map-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.layer-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.layer-control select {
+  font-size: 11px;
+  padding: 3px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.btn-map-tool {
+  background: var(--color-paper);
+  border: 1px solid var(--color-border);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.btn-map-tool:hover {
+  background: var(--color-border);
+}
+
+.map-canvas {
+  width: 100%;
+  height: 420px;
+  background: var(--color-paper);
+  z-index: 1;
+}
+
+/* Active Place Drawer on Map */
+.active-place-card {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 320px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+}
+
+.place-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.place-category {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-brand);
+}
+
+.place-name {
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-ink);
-  margin-bottom: 4px;
+  margin-top: 2px;
 }
 
-.floating-address {
+.btn-close-card {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.place-address {
   font-size: 11px;
   color: var(--color-muted);
   line-height: 1.4;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-.floating-meta {
+.place-details {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
+  color: var(--color-ink);
   margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--color-border);
 }
 
-.meta-rating { color: var(--color-warning); }
-.meta-distance { color: var(--color-brand); }
+.status-open { color: #27ae60; font-weight: 600; }
+.status-closed { color: #e74c3c; font-weight: 600; }
 
-.floating-actions {
+.place-actions {
   display: flex;
   gap: 8px;
 }
 
-.btn-wa-sm {
+.btn-whatsapp {
   flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-success);
+  background: #27ae60;
   color: #FFFFFF;
   text-decoration: none;
   font-size: 11px;
@@ -1793,738 +1378,498 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-sm);
 }
 
-.btn-detail-sm {
-  flex: 1;
+.btn-subtle-sm {
   background: var(--color-paper);
   border: 1px solid var(--color-border);
   color: var(--color-ink);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   padding: 6px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
-/* Leads Table Section */
-.leads-table-container {
-  background-color: var(--color-panel);
+/* Table Section */
+.table-card {
+  background: var(--color-panel);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
-.table-header-row {
+.table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 24px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--color-border);
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
 }
 
-.table-title-area {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.table-section-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: var(--text-md);
+.table-title {
+  font-size: 15px;
   font-weight: 700;
   color: var(--color-ink);
 }
 
-.table-count-badge {
-  font-size: 11px;
-  font-weight: 700;
-  background: rgba(47, 122, 93, 0.12);
-  color: var(--color-success);
-  padding: 3px 8px;
-  border-radius: 999px;
-}
-
-.table-section-desc {
-  font-size: var(--text-xs);
+.table-subtitle {
+  font-size: 12px;
   color: var(--color-muted);
+  margin-top: 2px;
 }
 
-.table-search-box {
+.table-search {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: var(--color-paper);
   border: 1px solid var(--color-border);
   padding: 6px 12px;
-  border-radius: var(--radius-md);
-  color: var(--color-muted);
-  width: 250px;
+  border-radius: var(--radius-sm);
+  width: 240px;
 }
 
-.table-search-input {
+.table-search input {
   background: none;
   border: none;
   outline: none;
+  font-size: 12px;
   color: var(--color-ink);
-  font-size: var(--text-xs);
   font-family: inherit;
   width: 100%;
 }
 
-.table-responsive-wrapper {
-  width: 100%;
+.table-wrapper {
   overflow-x: auto;
 }
 
-.leads-table {
+.data-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: var(--text-sm);
+  font-size: 13px;
 }
 
-.leads-table th {
-  background-color: var(--color-paper);
+.data-table th {
+  background: var(--color-paper);
   color: var(--color-muted);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 12px 16px;
+  letter-spacing: 0.03em;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
 }
 
-.leads-table td {
-  padding: 14px 16px;
+.data-table td {
+  padding: 12px 14px;
   border-bottom: 1px solid var(--color-border);
   color: var(--color-ink);
   vertical-align: middle;
 }
 
-.leads-table tbody tr {
+.data-table tbody tr {
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.12s ease;
 }
 
-.leads-table tbody tr:hover {
-  background-color: rgba(62, 76, 138, 0.04);
+.data-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
-.leads-table tbody tr.row-active {
-  background-color: rgba(62, 76, 138, 0.09);
-  border-left: 3px solid var(--color-brand);
+.data-table tbody tr.is-selected {
+  background-color: rgba(62, 76, 138, 0.08);
 }
 
-.col-num {
-  font-weight: 600;
+.cell-index {
   color: var(--color-muted);
-  font-size: var(--text-xs);
+  font-size: 12px;
 }
 
-.biz-name-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.biz-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  background: var(--color-paper);
-  border: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
-}
-
-.biz-info {
+.name-box {
   display: flex;
   flex-direction: column;
 }
 
-.biz-title {
+.place-title {
   font-weight: 600;
   color: var(--color-ink);
-  font-size: var(--text-sm);
 }
 
-.biz-badge {
-  font-size: 10px;
-  color: var(--color-muted);
-}
-
-.rating-box {
-  display: flex;
-  flex-direction: column;
-}
-
-.stars-val {
-  font-weight: 700;
-  color: var(--color-warning);
-  font-size: var(--text-xs);
-}
-
-.reviews-count {
+.place-sub {
   font-size: 11px;
   color: var(--color-muted);
 }
 
-.address-text {
-  font-size: var(--text-xs);
-  color: var(--color-ink);
-  line-height: 1.4;
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.rating-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rating-stars {
+  font-weight: 700;
+  color: #d97706;
+}
+
+.review-count {
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.text-clamp {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 240px;
+  line-height: 1.35;
+  font-size: 12px;
 }
 
-.distance-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(62, 76, 138, 0.08);
-  color: var(--color-brand);
-  padding: 4px 8px;
-  border-radius: 999px;
+.distance-tag {
   font-size: 11px;
   font-weight: 600;
+  color: var(--color-brand);
+  background: rgba(62, 76, 138, 0.08);
+  padding: 2px 7px;
+  border-radius: 4px;
   white-space: nowrap;
 }
 
-.contact-box {
+.contact-row {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.wa-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: rgba(47, 122, 93, 0.1);
-  color: var(--color-success);
-  padding: 5px 10px;
-  border-radius: var(--radius-sm);
-  text-decoration: none;
-  font-size: var(--text-xs);
+.contact-link {
+  color: #27ae60;
   font-weight: 600;
-  transition: all 0.15s ease;
+  text-decoration: none;
+  font-size: 12px;
   white-space: nowrap;
 }
 
-.wa-link:hover {
-  background: var(--color-success);
-  color: #FFFFFF;
+.contact-link:hover {
+  text-decoration: underline;
 }
 
-.copy-cell-btn {
+.btn-copy-inline {
   background: none;
-  border: 1px solid var(--color-border);
-  padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: 11px;
+  border: none;
   color: var(--color-muted);
-  transition: background 0.15s ease;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
 }
 
-.copy-cell-btn:hover {
-  background: var(--color-paper);
-}
-
-.status-chip {
+.badge-status {
   display: inline-block;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 2px 6px;
-  border-radius: 4px;
-  margin-bottom: 2px;
+  border-radius: 3px;
 }
 
-.status-chip.open { background: rgba(47, 122, 93, 0.12); color: var(--color-success); }
-.status-chip.closed { background: rgba(232, 86, 47, 0.12); color: var(--color-signal); }
+.badge-status.open { background: rgba(39, 174, 96, 0.12); color: #27ae60; }
+.badge-status.closed { background: rgba(231, 76, 60, 0.12); color: #e74c3c; }
 
-.hours-text {
+.hours-sub {
   display: block;
   font-size: 11px;
   color: var(--color-muted);
+  margin-top: 2px;
 }
 
-.price-range {
+.price-val {
   font-weight: 600;
-  font-size: var(--text-xs);
-  color: var(--color-ink);
+  font-size: 12px;
 }
 
-.features-list {
-  font-size: 10px;
+.service-desc {
+  font-size: 11px;
   color: var(--color-muted);
-  line-height: 1.3;
-  max-width: 170px;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.row-actions {
+.action-btn-group {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
 }
 
-.btn-tbl-icon {
-  width: 32px;
-  height: 32px;
+.btn-icon {
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-sm);
   background: var(--color-paper);
   border: 1px solid var(--color-border);
+  color: var(--color-ink);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.15s ease;
-  font-size: 14px;
+  transition: all 0.12s ease;
 }
 
-.btn-tbl-icon:hover {
+.btn-icon:hover {
   border-color: var(--color-brand);
-  background: rgba(62, 76, 138, 0.1);
-  transform: scale(1.08);
+  color: var(--color-brand);
 }
 
-.empty-table-cell {
+.cell-empty {
   text-align: center;
-  padding: 40px !important;
-}
-
-.empty-table-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  padding: 30px !important;
   color: var(--color-muted);
 }
 
-/* Modal Dialog */
-.lead-modal-backdrop {
+/* Modal */
+.modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  padding: 20px;
+  padding: 16px;
 }
 
-.lead-modal-card {
+.modal-card {
   width: 100%;
-  max-width: 580px;
-  background-color: var(--color-panel);
+  max-width: 520px;
+  background: var(--color-panel);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-modal);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
   overflow: hidden;
 }
 
-.modal-top {
+.modal-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 16px 22px;
+  align-items: flex-start;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-paper);
 }
 
-.modal-category-tag {
-  font-size: 11px;
-  font-weight: 700;
+.modal-badge {
+  font-size: 10px;
+  font-weight: 600;
   text-transform: uppercase;
   color: var(--color-brand);
-  background: rgba(62, 76, 138, 0.1);
-  padding: 3px 10px;
-  border-radius: 999px;
 }
 
-.modal-close-btn {
+.modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin-top: 2px;
+}
+
+.btn-close-modal {
   background: none;
   border: none;
-  font-size: 18px;
+  font-size: 16px;
   color: var(--color-muted);
   cursor: pointer;
 }
 
-.modal-body-content {
-  padding: 22px;
+.modal-content {
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
 }
 
-.modal-title-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.modal-avatar {
-  font-size: 32px;
-  width: 54px;
-  height: 54px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.modal-title {
-  font-size: var(--text-lg);
-  font-weight: 700;
-  color: var(--color-ink);
-}
-
-.modal-rating {
-  font-size: var(--text-xs);
-  color: var(--color-muted);
-  display: flex;
-  gap: 6px;
-  margin-top: 2px;
-}
-
-.modal-info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-.modal-info-item {
+.info-row {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
-.modal-info-item.full {
-  grid-column: span 2;
+.info-row.full-width {
+  margin-top: 6px;
 }
 
-.m-label {
+.info-label {
   font-size: 11px;
-  text-transform: uppercase;
-  font-weight: 600;
   color: var(--color-muted);
+  font-weight: 600;
 }
 
-.m-val {
-  font-size: var(--text-sm);
+.info-value {
+  font-size: 13px;
   color: var(--color-ink);
   line-height: 1.4;
 }
 
-.m-val.highlight {
-  font-weight: 600;
-  color: var(--color-brand);
-}
-
-.m-val.phone-link a {
-  color: var(--color-success);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.modal-textarea {
+.notes-input {
   width: 100%;
-  height: 70px;
-  padding: 10px;
+  padding: 8px 10px;
   background: var(--color-paper);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-family: inherit;
-  font-size: var(--text-xs);
+  font-size: 12px;
   color: var(--color-ink);
   outline: none;
   resize: vertical;
 }
 
-.modal-footer-row {
+.modal-foot {
   display: flex;
   justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 22px;
-  border-top: 1px solid var(--color-border);
+  gap: 8px;
+  padding: 12px 20px;
   background: var(--color-paper);
+  border-top: 1px solid var(--color-border);
 }
 
-.btn-modal-sec {
-  background: none;
+.btn-secondary {
+  background: var(--color-panel);
   border: 1px solid var(--color-border);
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
   color: var(--color-ink);
-  cursor: pointer;
-}
-
-.btn-modal-pri {
-  background: var(--color-brand);
-  border: none;
-  color: #FFFFFF;
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
 }
 
-.btn-modal-wa {
-  background: var(--color-success);
-  color: #FFFFFF;
-  text-decoration: none;
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-/* Toast Message */
-.toast-notification {
+/* Toast */
+.toast {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: 20px;
+  right: 20px;
   background: #1B1F3B;
   color: #FFFFFF;
-  padding: 12px 20px;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
   font-weight: 500;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   z-index: 10000;
-  animation: slideUp 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Leaflet Custom Marker & Popup Styles */
-:deep(.custom-leaflet-div-icon) {
+/* Leaflet Clean Markers & Popups */
+:deep(.leaflet-clean-pin) {
   background: transparent;
   border: none;
 }
 
-:deep(.custom-center-pin) {
-  position: relative;
-  width: 40px;
-  height: 40px;
+:deep(.map-pin-center) {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(44, 62, 80, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-:deep(.custom-center-pin .pin-core) {
-  width: 28px;
-  height: 28px;
+:deep(.map-pin-center .pin-dot) {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: #3E4C8A;
-  color: #FFF;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  box-shadow: 0 2px 8px rgba(62, 76, 138, 0.5);
-  z-index: 2;
+  background: #2C3E50;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
-:deep(.custom-center-pin .pulse-ring) {
-  position: absolute;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: 2px solid #3E4C8A;
-  animation: centerPulse 2s infinite ease-out;
-  z-index: 1;
-}
-
-@keyframes centerPulse {
-  0% { transform: scale(0.6); opacity: 1; }
-  100% { transform: scale(1.8); opacity: 0; }
-}
-
-:deep(.custom-lead-pin) {
-  width: 36px;
-  height: 42px;
-  background: #E8562F;
+:deep(.map-lead-marker) {
+  width: 26px;
+  height: 32px;
+  background: #34495E;
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-  transition: transform 0.2s ease;
-  position: relative;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  transition: transform 0.15s ease;
 }
 
-:deep(.custom-lead-pin.active-pin) {
-  background: #2F7A5D;
-  transform: rotate(-45deg) scale(1.2);
-  box-shadow: 0 0 16px rgba(47, 122, 93, 0.8);
-  z-index: 999;
+:deep(.map-lead-marker.is-active) {
+  background: #27ae60;
+  transform: rotate(-45deg) scale(1.15);
+  box-shadow: 0 3px 8px rgba(39, 174, 96, 0.4);
 }
 
-:deep(.custom-lead-pin .pin-icon) {
+:deep(.map-lead-marker span) {
   transform: rotate(45deg);
-  font-size: 14px;
-}
-
-:deep(.custom-lead-pin .pin-index) {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  background: #FFFFFF;
-  color: #1B1F3B;
-  font-size: 10px;
-  font-weight: 700;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: rotate(45deg);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-}
-
-:deep(.leaflet-popup-card) {
-  font-family: 'Inter', sans-serif;
-  min-width: 220px;
-  padding: 4px;
-}
-
-:deep(.leaflet-popup-card .pop-header) {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-:deep(.leaflet-popup-card .pop-cat) {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #3E4C8A;
-}
-
-:deep(.leaflet-popup-card .pop-rate) {
+  color: #FFFFFF;
   font-size: 11px;
   font-weight: 700;
-  color: #B8860B;
 }
 
-:deep(.leaflet-popup-card .pop-title) {
+:deep(.map-popup) {
+  font-family: inherit;
+  min-width: 200px;
+}
+
+:deep(.map-popup .popup-cat) {
+  font-size: 10px;
+  font-weight: 600;
+  color: #7f8c8d;
+}
+
+:deep(.map-popup .popup-title) {
   font-size: 13px;
   font-weight: 700;
-  margin: 0 0 4px 0;
-  color: #1B1F3B;
+  margin: 2px 0 4px 0;
+  color: #2c3e50;
 }
 
-:deep(.leaflet-popup-card .pop-addr) {
+:deep(.map-popup .popup-addr) {
   font-size: 11px;
-  color: #555;
-  margin: 0 0 8px 0;
+  color: #666;
+  margin: 0 0 6px 0;
   line-height: 1.3;
 }
 
-:deep(.leaflet-popup-card .pop-meta) {
+:deep(.map-popup .popup-meta) {
   display: flex;
-  justify-content: space-between;
+  gap: 6px;
   font-size: 11px;
   font-weight: 600;
+  color: #d35400;
   margin-bottom: 8px;
 }
 
-:deep(.leaflet-popup-card .pop-btn-wa) {
+:deep(.map-popup .popup-wa-btn) {
   display: block;
   text-align: center;
-  background: #2F7A5D;
-  color: #FFF !important;
+  background: #27ae60;
+  color: #FFFFFF !important;
   text-decoration: none;
-  padding: 6px;
+  padding: 5px;
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
 }
 
-/* Responsive Breakpoints */
-@media (max-width: 1024px) {
-  .search-form-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  .form-group-action {
-    grid-column: span 2;
-  }
-  .stats-overview-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 768px) {
-  .lead-header-banner {
+  .search-bar {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
+    align-items: stretch;
   }
-  .banner-actions {
+  .search-field, .search-field.flex-2, .search-field.radius-select-field {
     width: 100%;
   }
-  .btn-action-outline {
-    flex: 1;
-    justify-content: center;
-  }
-  .search-form-grid {
-    grid-template-columns: 1fr;
-  }
-  .form-group-action {
-    grid-column: span 1;
-  }
-  .stats-overview-grid {
-    grid-template-columns: 1fr;
-  }
-  .map-toolbar-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .map-toolbar-right {
+  .btn-primary {
     width: 100%;
-    justify-content: space-between;
   }
-  .map-floating-overlay {
+  .active-place-card {
     position: static;
     width: 100%;
     border-radius: 0;
-  }
-  .table-header-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .table-search-box {
-    width: 100%;
   }
 }
 </style>
