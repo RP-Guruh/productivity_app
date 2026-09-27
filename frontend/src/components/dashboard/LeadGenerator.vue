@@ -150,20 +150,6 @@
         </div>
 
         <div class="map-controls">
-          <div class="layer-control">
-            <svg class="layer-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-            <span>Layer:</span>
-            <select v-model="selectedTileProvider" @change="changeTileLayer" title="Pilih tipe peta Leaflet">
-              <option value="osm">OpenStreetMap (Standar)</option>
-              <option value="esri_sat">Satelit / Foto Udara</option>
-              <option value="esri_streets">Esri Jalanan</option>
-              <option value="esri_topo">Topografi (Esri)</option>
-              <option value="carto_light">Minimalis Terang</option>
-              <option value="carto_dark">Mode Gelap (Dark)</option>
-              <option value="opentopo">OpenTopoMap (Kontur)</option>
-            </select>
-          </div>
-
           <button 
             class="btn-map-tool" 
             @click="getUserCurrentLocation(true)" 
@@ -468,68 +454,12 @@ const exampleSearches = [
   { keyword: 'Bengkel Motor', location: 'Sawangan Depok', radius: 3 }
 ]
 
-// Tile Providers (No API Key Required - Leaflet Compatible)
-const selectedTileProvider = ref('osm')
-const TILE_PROVIDERS = {
-  osm: {
-    name: 'OpenStreetMap (Standar)',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    options: {
-      attribution: '&copy; OpenStreetMap contributors',
-      subdomains: ['a', 'b', 'c'],
-      maxZoom: 19
-    }
-  },
-  esri_sat: {
-    name: 'Satelit / Foto Udara',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    options: {
-      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
-      maxZoom: 18
-    }
-  },
-  esri_streets: {
-    name: 'Esri Jalanan',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-    options: {
-      attribution: 'Tiles &copy; Esri',
-      maxZoom: 18
-    }
-  },
-  esri_topo: {
-    name: 'Topografi (Esri)',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-    options: {
-      attribution: 'Tiles &copy; Esri',
-      maxZoom: 18
-    }
-  },
-  carto_light: {
-    name: 'Minimalis Terang',
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    options: {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }
-  },
-  carto_dark: {
-    name: 'Mode Gelap (Dark)',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    options: {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }
-  },
-  opentopo: {
-    name: 'OpenTopoMap (Kontur)',
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    options: {
-      attribution: '&copy; OpenTopoMap (CC-BY-SA)',
-      maxZoom: 17
-    }
-  }
+// Clean Minimalist Map Tiles (CartoDB Positron - Ultra clear, modern and crisp)
+const CLEAN_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+const CLEAN_TILE_OPTIONS = {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 20
 }
 
 // Realistic Indonesian Barber Dataset for Cipayung Depok
@@ -682,42 +612,14 @@ const initMap = () => {
     leafletMap = null
   }
 
-  // Pre-generate Leaflet base layers
-  baseLayersMap = {
-    'OpenStreetMap (Standar)': L.tileLayer(TILE_PROVIDERS.osm.url, TILE_PROVIDERS.osm.options),
-    'Satelit / Foto Udara': L.tileLayer(TILE_PROVIDERS.esri_sat.url, TILE_PROVIDERS.esri_sat.options),
-    'Esri Jalanan': L.tileLayer(TILE_PROVIDERS.esri_streets.url, TILE_PROVIDERS.esri_streets.options),
-    'Topografi (Esri)': L.tileLayer(TILE_PROVIDERS.esri_topo.url, TILE_PROVIDERS.esri_topo.options),
-    'Minimalis Terang': L.tileLayer(TILE_PROVIDERS.carto_light.url, TILE_PROVIDERS.carto_light.options),
-    'Mode Gelap': L.tileLayer(TILE_PROVIDERS.carto_dark.url, TILE_PROVIDERS.carto_dark.options),
-    'OpenTopoMap (Kontur)': L.tileLayer(TILE_PROVIDERS.opentopo.url, TILE_PROVIDERS.opentopo.options)
-  }
-
-  const initialKey = selectedTileProvider.value || 'osm'
-  const initialLayer = getLayerByKey(initialKey)
-
   leafletMap = L.map(mapContainerRef.value, {
     center: [currentSearchPoint.value.lat, currentSearchPoint.value.lng],
     zoom: 14,
-    zoomControl: true,
-    layers: [initialLayer]
+    zoomControl: true
   })
 
-  currentTileLayer = initialLayer
-
-  // Add Leaflet native Layer Control on top-right
-  leafletLayersControl = L.control.layers(baseLayersMap, null, {
-    position: 'topright',
-    collapsed: true
-  }).addTo(leafletMap)
-
-  // Listen to layer changes made via the Leaflet native control
-  leafletMap.on('baselayerchange', (e) => {
-    const key = findKeyByLayerName(e.name)
-    if (key && selectedTileProvider.value !== key) {
-      selectedTileProvider.value = key
-    }
-  })
+  // Basemap CartoDB Positron: Super bersih, jernih, dan modern
+  currentTileLayer = L.tileLayer(CLEAN_TILE_URL, CLEAN_TILE_OPTIONS).addTo(leafletMap)
 
   leadMarkersGroup = L.layerGroup().addTo(leafletMap)
 
@@ -733,43 +635,6 @@ const initMap = () => {
   }, 500)
 }
 
-const getLayerByKey = (key) => {
-  switch (key) {
-    case 'esri_sat': return baseLayersMap['Satelit / Foto Udara']
-    case 'esri_streets': return baseLayersMap['Esri Jalanan']
-    case 'esri_topo': return baseLayersMap['Topografi (Esri)']
-    case 'carto_light': return baseLayersMap['Minimalis Terang']
-    case 'carto_dark': return baseLayersMap['Mode Gelap']
-    case 'opentopo': return baseLayersMap['OpenTopoMap (Kontur)']
-    case 'osm':
-    default: return baseLayersMap['OpenStreetMap (Standar)']
-  }
-}
-
-const findKeyByLayerName = (name) => {
-  if (!name) return 'osm'
-  if (name.includes('Satelit')) return 'esri_sat'
-  if (name.includes('Esri Jalanan')) return 'esri_streets'
-  if (name.includes('Topografi')) return 'esri_topo'
-  if (name.includes('Minimalis Terang')) return 'carto_light'
-  if (name.includes('Mode Gelap')) return 'carto_dark'
-  if (name.includes('OpenTopoMap')) return 'opentopo'
-  if (name.includes('OpenStreetMap')) return 'osm'
-  return 'osm'
-}
-
-const changeTileLayer = () => {
-  if (!leafletMap) return
-  const newLayer = getLayerByKey(selectedTileProvider.value)
-  if (newLayer && newLayer !== currentTileLayer) {
-    if (currentTileLayer) {
-      leafletMap.removeLayer(currentTileLayer)
-    }
-    leafletMap.addLayer(newLayer)
-    currentTileLayer = newLayer
-  }
-}
-
 const renderCenterAndRadius = () => {
   if (!leafletMap) return
   if (radiusCircleLayer) leafletMap.removeLayer(radiusCircleLayer)
@@ -778,43 +643,35 @@ const renderCenterAndRadius = () => {
   const { lat, lng, name } = currentSearchPoint.value
   const radiusMeters = searchRadius.value * 1000
 
-  // Radius perimeter circle
+  // Radius perimeter circle (clean emerald ring)
   radiusCircleLayer = L.circle([lat, lng], {
     radius: radiusMeters,
-    color: '#2C3E50',
+    color: '#10b981',
     weight: 1.5,
-    dashArray: '5, 5',
-    fillColor: '#34495E',
-    fillOpacity: 0.08
+    dashArray: '6, 6',
+    fillColor: '#10b981',
+    fillOpacity: 0.05
   }).addTo(leafletMap)
 
-  // Check if center is user's real location
-  const isRealUser = !!userLocationCoords.value &&
-    Math.abs(lat - userLocationCoords.value.lat) < 0.0002 &&
-    Math.abs(lng - userLocationCoords.value.lng) < 0.0002
-
-  const centerIconHtml = isRealUser ? `
-    <div class="map-pin-user-location" title="Posisi Anda Saat Ini">
+  // Bullet hijau kelap-kelip (Green pulsating / blinking bullet for user position)
+  const centerIconHtml = `
+    <div class="map-pin-user-location" title="Posisi Anda">
       <div class="user-pulse"></div>
       <div class="user-dot"></div>
-    </div>
-  ` : `
-    <div class="map-pin-center" title="Pusat Pencarian">
-      <div class="pin-dot"></div>
     </div>
   `
 
   const centerIcon = L.divIcon({
     html: centerIconHtml,
     className: 'leaflet-clean-pin',
-    iconSize: isRealUser ? [26, 26] : [24, 24],
-    iconAnchor: isRealUser ? [13, 13] : [12, 12]
+    iconSize: [26, 26],
+    iconAnchor: [13, 13]
   })
 
   centerMarkerLayer = L.marker([lat, lng], { icon: centerIcon })
     .bindPopup(`
       <div style="font-size: 12px; line-height: 1.4;">
-        <strong>${isRealUser ? '📍 Posisi Anda Saat Ini:' : 'Pusat Pencarian:'}</strong><br/>${name}<br/>
+        <strong>📍 Posisi Anda:</strong><br/>${name}<br/>
         <span style="color: #666;">Radius pencarian: ${searchRadius.value} km</span>
       </div>
     `)
@@ -827,17 +684,21 @@ const renderLeadMarkers = () => {
 
   leads.value.forEach((lead, idx) => {
     const isSelected = selectedLead.value?.id === lead.id
+    // Lokasi yang didapatkan: warna merah kelap-kelip
     const pinHtml = `
-      <div class="map-lead-marker ${isSelected ? 'is-active' : ''}">
-        <span>${idx + 1}</span>
+      <div class="map-lead-marker-wrap">
+        <div class="marker-pulse-red"></div>
+        <div class="map-lead-marker ${isSelected ? 'is-active' : ''}">
+          <span>${idx + 1}</span>
+        </div>
       </div>
     `
     const leadIcon = L.divIcon({
       html: pinHtml,
       className: 'leaflet-clean-pin',
-      iconSize: [28, 34],
-      iconAnchor: [14, 34],
-      popupAnchor: [0, -32]
+      iconSize: [32, 40],
+      iconAnchor: [16, 38],
+      popupAnchor: [0, -36]
     })
 
     const marker = L.marker([lead.lat, lead.lng], { icon: leadIcon })
@@ -1667,33 +1528,6 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
 }
 
-.layer-control {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--color-muted);
-}
-
-.layer-icon {
-  color: var(--color-muted);
-  flex-shrink: 0;
-}
-
-.layer-control select {
-  font-size: 11px;
-  padding: 4px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-paper);
-  color: var(--color-ink);
-  cursor: pointer;
-  outline: none;
-}
-
-.layer-control select:focus {
-  border-color: var(--color-brand);
-}
 
 .btn-map-tool {
   display: inline-flex;
@@ -2254,6 +2088,7 @@ onBeforeUnmount(() => {
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
+/* Posisi Saya: Bullet Hijau Kelap-Kelip */
 :deep(.map-pin-user-location) {
   position: relative;
   width: 26px;
@@ -2270,55 +2105,95 @@ onBeforeUnmount(() => {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: rgba(33, 150, 243, 0.45);
-  animation: user-gps-pulse 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  background: rgba(16, 185, 129, 0.45);
+  animation: green-user-pulse 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
 }
 
 :deep(.map-pin-user-location .user-dot) {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  width: 14px;
-  height: 14px;
-  background: #1976D2;
-  border: 2.5px solid #FFFFFF;
+  top: 5px;
+  left: 5px;
+  width: 16px;
+  height: 16px;
+  background: #10b981;
+  border: 3px solid #FFFFFF;
   border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.8), 0 2px 6px rgba(0, 0, 0, 0.3);
   z-index: 2;
+  animation: green-bullet-blink 1.4s ease-in-out infinite alternate;
 }
 
-@keyframes user-gps-pulse {
+@keyframes green-user-pulse {
   0% {
-    transform: scale(0.6);
-    opacity: 0.9;
+    transform: scale(0.5);
+    opacity: 0.95;
   }
   70% {
-    transform: scale(2.6);
+    transform: scale(2.8);
     opacity: 0;
   }
   100% {
-    transform: scale(2.6);
+    transform: scale(2.8);
     opacity: 0;
   }
 }
 
+@keyframes green-bullet-blink {
+  0% {
+    transform: scale(0.9);
+    filter: brightness(0.9);
+    box-shadow: 0 0 4px rgba(16, 185, 129, 0.5), 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  100% {
+    transform: scale(1.15);
+    filter: brightness(1.2);
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.95), 0 2px 8px rgba(0, 0, 0, 0.35);
+  }
+}
+
+/* Lokasi yang Didapatkan: Warna Merah Kelap-Kelip */
+:deep(.map-lead-marker-wrap) {
+  position: relative;
+  width: 32px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.map-lead-marker-wrap .marker-pulse-red) {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  margin-left: -11px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.5);
+  animation: red-marker-pulse 1.8s cubic-bezier(0.2, 0.6, 0.35, 1) infinite;
+  pointer-events: none;
+}
+
 :deep(.map-lead-marker) {
+  position: relative;
   width: 26px;
   height: 32px;
-  background: #34495E;
+  background: #ef4444;
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
   transition: transform 0.15s ease;
+  animation: red-marker-blink 1.5s ease-in-out infinite alternate;
+  z-index: 2;
 }
 
 :deep(.map-lead-marker.is-active) {
-  background: #27ae60;
-  transform: rotate(-45deg) scale(1.15);
-  box-shadow: 0 3px 8px rgba(39, 174, 96, 0.4);
+  background: #b91c1c;
+  transform: rotate(-45deg) scale(1.2);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.95), 0 4px 10px rgba(0, 0, 0, 0.35);
 }
 
 :deep(.map-lead-marker span) {
@@ -2326,6 +2201,32 @@ onBeforeUnmount(() => {
   color: #FFFFFF;
   font-size: 11px;
   font-weight: 700;
+}
+
+@keyframes red-marker-pulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.95;
+  }
+  70% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+@keyframes red-marker-blink {
+  0% {
+    filter: brightness(0.95);
+    box-shadow: 0 0 4px rgba(239, 68, 68, 0.4), 0 2px 4px rgba(0, 0, 0, 0.25);
+  }
+  100% {
+    filter: brightness(1.2);
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.9), 0 2px 8px rgba(0, 0, 0, 0.35);
+  }
 }
 
 :deep(.map-popup) {
