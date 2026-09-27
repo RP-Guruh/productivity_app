@@ -114,25 +114,48 @@
     </div>
 
     <!-- Map View -->
-    <div class="map-card">
+    <div 
+      class="map-card" 
+      :class="{ 'is-fullscreen': isFullscreen }" 
+      ref="mapCardRef"
+    >
       <div class="map-header">
         <div class="map-title-row">
           <span class="dot-indicator"></span>
           <span class="map-title">Peta Persebaran & Radius</span>
           <span class="map-meta">({{ searchKeyword }} di sekitar {{ searchLocation }})</span>
+          <span v-if="isFullscreen" class="esc-hint">Tekan ESC untuk keluar</span>
         </div>
 
         <div class="map-controls">
           <div class="layer-control">
-            <span>Tampilan:</span>
-            <select v-model="selectedTileProvider" @change="changeTileLayer">
-              <option value="osm">OpenStreetMap</option>
-              <option value="esri">Esri Jalanan</option>
-              <option value="carto">Carto Sederhana</option>
+            <svg class="layer-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            <span>Layer:</span>
+            <select v-model="selectedTileProvider" @change="changeTileLayer" title="Pilih tipe peta Leaflet">
+              <option value="osm">OpenStreetMap (Standar)</option>
+              <option value="esri_sat">Satelit / Foto Udara</option>
+              <option value="esri_streets">Esri Jalanan</option>
+              <option value="esri_topo">Topografi (Esri)</option>
+              <option value="carto_light">Minimalis Terang</option>
+              <option value="carto_dark">Mode Gelap (Dark)</option>
+              <option value="opentopo">OpenTopoMap (Kontur)</option>
             </select>
           </div>
+
           <button class="btn-map-tool" @click="recenterMap" title="Pusatkan kembali ke radius pencarian">
-            Pusatkan
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+            <span>Pusatkan</span>
+          </button>
+
+          <button 
+            class="btn-map-tool btn-fullscreen" 
+            :class="{ 'btn-active': isFullscreen }" 
+            @click="toggleFullscreen" 
+            :title="isFullscreen ? 'Keluar Layar Penuh (Esc)' : 'Perbesar Peta ke Layar Penuh'"
+          >
+            <svg v-if="!isFullscreen" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>
+            <span>{{ isFullscreen ? 'Keluar' : 'Layar Penuh' }}</span>
           </button>
         </div>
       </div>
@@ -385,11 +408,16 @@ const toastMessage = ref('')
 
 // Map setup
 const mapContainerRef = ref(null)
+const mapCardRef = ref(null)
+const isFullscreen = ref(false)
+
 let leafletMap = null
 let radiusCircleLayer = null
 let centerMarkerLayer = null
 let leadMarkersGroup = null
 let currentTileLayer = null
+let leafletLayersControl = null
+let baseLayersMap = {}
 
 // Current center coordinates (Cipayung Depok)
 const currentSearchPoint = ref({
@@ -406,10 +434,11 @@ const exampleSearches = [
   { keyword: 'Bengkel Motor', location: 'Sawangan Depok', radius: 3 }
 ]
 
-// Tile Providers (No API Key Required)
+// Tile Providers (No API Key Required - Leaflet Compatible)
 const selectedTileProvider = ref('osm')
 const TILE_PROVIDERS = {
   osm: {
+    name: 'OpenStreetMap (Standar)',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     options: {
       attribution: '&copy; OpenStreetMap contributors',
@@ -417,19 +446,54 @@ const TILE_PROVIDERS = {
       maxZoom: 19
     }
   },
-  esri: {
+  esri_sat: {
+    name: 'Satelit / Foto Udara',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    options: {
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+      maxZoom: 18
+    }
+  },
+  esri_streets: {
+    name: 'Esri Jalanan',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
     options: {
       attribution: 'Tiles &copy; Esri',
       maxZoom: 18
     }
   },
-  carto: {
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  esri_topo: {
+    name: 'Topografi (Esri)',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+    options: {
+      attribution: 'Tiles &copy; Esri',
+      maxZoom: 18
+    }
+  },
+  carto_light: {
+    name: 'Minimalis Terang',
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
     options: {
       attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
       subdomains: 'abcd',
       maxZoom: 19
+    }
+  },
+  carto_dark: {
+    name: 'Mode Gelap (Dark)',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    options: {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }
+  },
+  opentopo: {
+    name: 'OpenTopoMap (Kontur)',
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    options: {
+      attribution: '&copy; OpenTopoMap (CC-BY-SA)',
+      maxZoom: 17
     }
   }
 }
@@ -584,15 +648,42 @@ const initMap = () => {
     leafletMap = null
   }
 
+  // Pre-generate Leaflet base layers
+  baseLayersMap = {
+    'OpenStreetMap (Standar)': L.tileLayer(TILE_PROVIDERS.osm.url, TILE_PROVIDERS.osm.options),
+    'Satelit / Foto Udara': L.tileLayer(TILE_PROVIDERS.esri_sat.url, TILE_PROVIDERS.esri_sat.options),
+    'Esri Jalanan': L.tileLayer(TILE_PROVIDERS.esri_streets.url, TILE_PROVIDERS.esri_streets.options),
+    'Topografi (Esri)': L.tileLayer(TILE_PROVIDERS.esri_topo.url, TILE_PROVIDERS.esri_topo.options),
+    'Minimalis Terang': L.tileLayer(TILE_PROVIDERS.carto_light.url, TILE_PROVIDERS.carto_light.options),
+    'Mode Gelap': L.tileLayer(TILE_PROVIDERS.carto_dark.url, TILE_PROVIDERS.carto_dark.options),
+    'OpenTopoMap (Kontur)': L.tileLayer(TILE_PROVIDERS.opentopo.url, TILE_PROVIDERS.opentopo.options)
+  }
+
+  const initialKey = selectedTileProvider.value || 'osm'
+  const initialLayer = getLayerByKey(initialKey)
+
   leafletMap = L.map(mapContainerRef.value, {
     center: [currentSearchPoint.value.lat, currentSearchPoint.value.lng],
     zoom: 14,
-    zoomControl: true
+    zoomControl: true,
+    layers: [initialLayer]
   })
 
-  // OpenStreetMap tile layer (No API key)
-  const prov = TILE_PROVIDERS[selectedTileProvider.value] || TILE_PROVIDERS.osm
-  currentTileLayer = L.tileLayer(prov.url, prov.options).addTo(leafletMap)
+  currentTileLayer = initialLayer
+
+  // Add Leaflet native Layer Control on top-right
+  leafletLayersControl = L.control.layers(baseLayersMap, null, {
+    position: 'topright',
+    collapsed: true
+  }).addTo(leafletMap)
+
+  // Listen to layer changes made via the Leaflet native control
+  leafletMap.on('baselayerchange', (e) => {
+    const key = findKeyByLayerName(e.name)
+    if (key && selectedTileProvider.value !== key) {
+      selectedTileProvider.value = key
+    }
+  })
 
   leadMarkersGroup = L.layerGroup().addTo(leafletMap)
 
@@ -608,13 +699,41 @@ const initMap = () => {
   }, 500)
 }
 
+const getLayerByKey = (key) => {
+  switch (key) {
+    case 'esri_sat': return baseLayersMap['Satelit / Foto Udara']
+    case 'esri_streets': return baseLayersMap['Esri Jalanan']
+    case 'esri_topo': return baseLayersMap['Topografi (Esri)']
+    case 'carto_light': return baseLayersMap['Minimalis Terang']
+    case 'carto_dark': return baseLayersMap['Mode Gelap']
+    case 'opentopo': return baseLayersMap['OpenTopoMap (Kontur)']
+    case 'osm':
+    default: return baseLayersMap['OpenStreetMap (Standar)']
+  }
+}
+
+const findKeyByLayerName = (name) => {
+  if (!name) return 'osm'
+  if (name.includes('Satelit')) return 'esri_sat'
+  if (name.includes('Esri Jalanan')) return 'esri_streets'
+  if (name.includes('Topografi')) return 'esri_topo'
+  if (name.includes('Minimalis Terang')) return 'carto_light'
+  if (name.includes('Mode Gelap')) return 'carto_dark'
+  if (name.includes('OpenTopoMap')) return 'opentopo'
+  if (name.includes('OpenStreetMap')) return 'osm'
+  return 'osm'
+}
+
 const changeTileLayer = () => {
   if (!leafletMap) return
-  if (currentTileLayer) {
-    leafletMap.removeLayer(currentTileLayer)
+  const newLayer = getLayerByKey(selectedTileProvider.value)
+  if (newLayer && newLayer !== currentTileLayer) {
+    if (currentTileLayer) {
+      leafletMap.removeLayer(currentTileLayer)
+    }
+    leafletMap.addLayer(newLayer)
+    currentTileLayer = newLayer
   }
-  const prov = TILE_PROVIDERS[selectedTileProvider.value] || TILE_PROVIDERS.osm
-  currentTileLayer = L.tileLayer(prov.url, prov.options).addTo(leafletMap)
 }
 
 const renderCenterAndRadius = () => {
@@ -938,6 +1057,56 @@ const handleWindowResize = () => {
   }
 }
 
+// Fullscreen toggle logic
+const toggleFullscreen = async () => {
+  isFullscreen.value = !isFullscreen.value
+
+  if (isFullscreen.value) {
+    if (mapCardRef.value?.requestFullscreen) {
+      try {
+        await mapCardRef.value.requestFullscreen()
+      } catch (err) {
+        // Fallback to CSS fullscreen
+      }
+    }
+  } else {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      try {
+        await document.exitFullscreen()
+      } catch (err) {
+        // Handled
+      }
+    }
+  }
+
+  nextTick(() => {
+    setTimeout(() => {
+      if (leafletMap) leafletMap.invalidateSize()
+    }, 150)
+    setTimeout(() => {
+      if (leafletMap) leafletMap.invalidateSize()
+    }, 450)
+  })
+}
+
+const handleFullscreenChange = () => {
+  const isDocFs = !!document.fullscreenElement
+  if (!isDocFs && isFullscreen.value) {
+    isFullscreen.value = false
+    nextTick(() => {
+      setTimeout(() => {
+        if (leafletMap) leafletMap.invalidateSize()
+      }, 150)
+    })
+  }
+}
+
+const handleKeydown = (e) => {
+  if (e.key === 'Escape' && isFullscreen.value) {
+    toggleFullscreen()
+  }
+}
+
 onMounted(() => {
   const defaultKey = 'tukang cukur_cipayung depok'
   const defaultData = MOCK_DATASETS[defaultKey]
@@ -949,10 +1118,14 @@ onMounted(() => {
   })
 
   window.addEventListener('resize', handleWindowResize)
+  window.addEventListener('keydown', handleKeydown)
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleWindowResize)
+  window.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
   if (leafletMap) {
     leafletMap.remove()
     leafletMap = null
@@ -1215,6 +1388,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
+  transition: all 0.2s ease;
 }
 
 .map-header {
@@ -1230,6 +1404,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .dot-indicator {
@@ -1250,10 +1425,21 @@ onBeforeUnmount(() => {
   color: var(--color-muted);
 }
 
+.esc-hint {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-muted);
+  background: var(--color-paper);
+  border: 1px dashed var(--color-border);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
 .map-controls {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .layer-control {
@@ -1264,17 +1450,30 @@ onBeforeUnmount(() => {
   color: var(--color-muted);
 }
 
+.layer-icon {
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
 .layer-control select {
   font-size: 11px;
-  padding: 3px 8px;
+  padding: 4px 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-paper);
   color: var(--color-ink);
   cursor: pointer;
+  outline: none;
+}
+
+.layer-control select:focus {
+  border-color: var(--color-brand);
 }
 
 .btn-map-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: var(--color-paper);
   border: 1px solid var(--color-border);
   padding: 4px 10px;
@@ -1283,17 +1482,64 @@ onBeforeUnmount(() => {
   font-weight: 500;
   color: var(--color-ink);
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .btn-map-tool:hover {
   background: var(--color-border);
 }
 
+.btn-map-tool.btn-active {
+  background: var(--color-brand);
+  color: #FFFFFF;
+  border-color: var(--color-brand);
+}
+
+.btn-map-tool.btn-active svg {
+  stroke: #FFFFFF;
+}
+
 .map-canvas {
   width: 100%;
-  height: 420px;
+  height: 440px;
   background: var(--color-paper);
   z-index: 1;
+}
+
+/* Fullscreen Map Mode */
+.map-card.is-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99999 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--color-paper) !important;
+  margin: 0 !important;
+}
+
+.map-card.is-fullscreen .map-header {
+  flex-shrink: 0;
+  padding: 12px 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  z-index: 1002;
+}
+
+.map-card.is-fullscreen .map-canvas {
+  flex: 1;
+  height: 100% !important;
+}
+
+.map-card.is-fullscreen .active-place-card {
+  bottom: 24px;
+  right: 24px;
+  z-index: 1003;
 }
 
 /* Active Place Drawer on Map */
