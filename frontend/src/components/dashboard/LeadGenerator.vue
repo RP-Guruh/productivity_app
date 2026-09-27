@@ -36,7 +36,19 @@
         </div>
 
         <div class="search-field flex-2">
-          <label>Lokasi / Alamat</label>
+          <div class="field-label-row">
+            <label>Lokasi / Alamat</label>
+            <button 
+              type="button" 
+              class="btn-text-link" 
+              @click="getUserCurrentLocation(true)"
+              :disabled="isLocating"
+              title="Gunakan posisi riil saya saat ini"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+              <span>{{ isLocating ? 'Mencari...' : 'Pakai Lokasi Saya' }}</span>
+            </button>
+          </div>
           <div class="input-wrap">
             <svg class="field-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
             <input 
@@ -45,6 +57,16 @@
               placeholder="misal: Cipayung Depok, Tebet, Margonda..."
               required
             />
+            <button 
+              type="button" 
+              class="btn-input-gps" 
+              @click="getUserCurrentLocation(true)"
+              :disabled="isLocating"
+              title="Deteksi lokasi riil saya (GPS)"
+            >
+              <svg v-if="!isLocating" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+              <span v-else class="gps-spinner"></span>
+            </button>
           </div>
         </div>
 
@@ -141,6 +163,16 @@
               <option value="opentopo">OpenTopoMap (Kontur)</option>
             </select>
           </div>
+
+          <button 
+            class="btn-map-tool" 
+            @click="getUserCurrentLocation(true)" 
+            :disabled="isLocating"
+            title="Arahkan peta ke posisi riil saya saat ini"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+            <span>{{ isLocating ? 'Mencari...' : 'Lokasi Saya' }}</span>
+          </button>
 
           <button class="btn-map-tool" @click="recenterMap" title="Pusatkan kembali ke radius pencarian">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
@@ -400,6 +432,8 @@ const searchKeyword = ref('Tukang Cukur')
 const searchLocation = ref('Cipayung Depok')
 const searchRadius = ref(3)
 const isSearching = ref(false)
+const isLocating = ref(false)
+const userLocationCoords = ref(null)
 const copiedContacts = ref(false)
 const tableFilterText = ref('')
 const selectedLead = ref(null)
@@ -754,24 +788,34 @@ const renderCenterAndRadius = () => {
     fillOpacity: 0.08
   }).addTo(leafletMap)
 
-  // Clean center icon
-  const centerIconHtml = `
-    <div class="map-pin-center">
+  // Check if center is user's real location
+  const isRealUser = !!userLocationCoords.value &&
+    Math.abs(lat - userLocationCoords.value.lat) < 0.0002 &&
+    Math.abs(lng - userLocationCoords.value.lng) < 0.0002
+
+  const centerIconHtml = isRealUser ? `
+    <div class="map-pin-user-location" title="Posisi Anda Saat Ini">
+      <div class="user-pulse"></div>
+      <div class="user-dot"></div>
+    </div>
+  ` : `
+    <div class="map-pin-center" title="Pusat Pencarian">
       <div class="pin-dot"></div>
     </div>
   `
+
   const centerIcon = L.divIcon({
     html: centerIconHtml,
     className: 'leaflet-clean-pin',
-    iconSize: [24, 24],
-    iconAnchor: [12, 12]
+    iconSize: isRealUser ? [26, 26] : [24, 24],
+    iconAnchor: isRealUser ? [13, 13] : [12, 12]
   })
 
   centerMarkerLayer = L.marker([lat, lng], { icon: centerIcon })
     .bindPopup(`
       <div style="font-size: 12px; line-height: 1.4;">
-        <strong>Pusat Pencarian:</strong><br/>${name}<br/>
-        <span style="color: #666;">Radius ${searchRadius.value} km</span>
+        <strong>${isRealUser ? '📍 Posisi Anda Saat Ini:' : 'Pusat Pencarian:'}</strong><br/>${name}<br/>
+        <span style="color: #666;">Radius pencarian: ${searchRadius.value} km</span>
       </div>
     `)
     .addTo(leafletMap)
@@ -859,24 +903,26 @@ const focusLeadOnMap = (lead) => {
 }
 
 // Dynamic Mock Fallback for custom queries
-const generateRealisticMock = (keyword, location) => {
-  const str = (keyword + location).toLowerCase()
-  let baseLat = -6.4255
-  let baseLng = 106.8150
+const generateRealisticMock = (keyword, location, customLat = null, customLng = null) => {
+  let baseLat = customLat !== null ? customLat : -6.4255
+  let baseLng = customLng !== null ? customLng : 106.8150
   let cleanLoc = location
 
-  if (str.includes('tebet') || str.includes('jakarta')) {
-    baseLat = -6.2372; baseLng = 106.8528
-    cleanLoc = 'Tebet, Jakarta Selatan'
-  } else if (str.includes('margonda')) {
-    baseLat = -6.3725; baseLng = 106.8320
-    cleanLoc = 'Margonda, Depok'
-  } else if (str.includes('sawangan')) {
-    baseLat = -6.4020; baseLng = 106.7780
-    cleanLoc = 'Sawangan, Depok'
-  } else if (str.includes('bandung')) {
-    baseLat = -6.9175; baseLng = 107.6191
-    cleanLoc = 'Bandung'
+  if (customLat === null || customLng === null) {
+    const str = (keyword + location).toLowerCase()
+    if (str.includes('tebet') || str.includes('jakarta')) {
+      baseLat = -6.2372; baseLng = 106.8528
+      cleanLoc = 'Tebet, Jakarta Selatan'
+    } else if (str.includes('margonda')) {
+      baseLat = -6.3725; baseLng = 106.8320
+      cleanLoc = 'Margonda, Depok'
+    } else if (str.includes('sawangan')) {
+      baseLat = -6.4020; baseLng = 106.7780
+      cleanLoc = 'Sawangan, Depok'
+    } else if (str.includes('bandung')) {
+      baseLat = -6.9175; baseLng = 107.6191
+      cleanLoc = 'Bandung'
+    }
   }
 
   currentSearchPoint.value = {
@@ -885,11 +931,12 @@ const generateRealisticMock = (keyword, location) => {
     lng: baseLng
   }
 
+  const locFirstWord = cleanLoc.split(/[, ]+/)[0] || 'Sekitar'
   const names = [
-    `${keyword} Barokah ${location.split(' ')[0]}`,
+    `${keyword} Barokah ${locFirstWord}`,
     `${keyword} Sumber Rezeki`,
     `${keyword} Mandiri Jaya`,
-    `${keyword} Sahabat ${location.split(' ')[0]}`,
+    `${keyword} Sahabat ${locFirstWord}`,
     `${keyword} Prima Utama`,
     `${keyword} Berkah Bersama`
   ]
@@ -910,7 +957,7 @@ const generateRealisticMock = (keyword, location) => {
       category: `Usaha ${keyword}`,
       rating: parseFloat(rating),
       reviews,
-      address: `Jl. Raya ${location} No. ${10 + i * 14}, ${location}`,
+      address: `Jl. Raya ${cleanLoc} No. ${10 + i * 14}, ${cleanLoc}`,
       distanceKm: distKm,
       distanceText: distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm} km`,
       lat: baseLat + latOffset,
@@ -925,31 +972,53 @@ const generateRealisticMock = (keyword, location) => {
   })
 }
 
-const handleSearch = () => {
+const handleSearch = async () => {
   isSearching.value = true
   selectedLead.value = null
 
-  setTimeout(() => {
-    const key = `${searchKeyword.value.toLowerCase().trim()}_${searchLocation.value.toLowerCase().trim()}`
-    
-    if (MOCK_DATASETS[key]) {
-      const data = MOCK_DATASETS[key]
-      currentSearchPoint.value = { ...data.center }
-      leads.value = [...data.items]
+  const locQuery = searchLocation.value.trim()
+  const key = `${searchKeyword.value.toLowerCase().trim()}_${locQuery.toLowerCase()}`
+
+  if (MOCK_DATASETS[key]) {
+    const data = MOCK_DATASETS[key]
+    currentSearchPoint.value = { ...data.center }
+    leads.value = [...data.items]
+  } else {
+    let geoLat = null
+    let geoLng = null
+
+    if (userLocationCoords.value && (locQuery.toLowerCase().includes('saya') || locQuery.toLowerCase().includes('riil'))) {
+      geoLat = userLocationCoords.value.lat
+      geoLng = userLocationCoords.value.lng
     } else {
-      leads.value = generateRealisticMock(searchKeyword.value, searchLocation.value)
+      try {
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locQuery)}&limit=1`, {
+          headers: { 'Accept': 'application/json' }
+        })
+        if (geoRes.ok) {
+          const geoData = await geoRes.json()
+          if (geoData && geoData.length > 0) {
+            geoLat = parseFloat(geoData[0].lat)
+            geoLng = parseFloat(geoData[0].lon)
+          }
+        }
+      } catch (e) {
+        // fallback
+      }
     }
 
-    if (leafletMap) {
-      leafletMap.setView([currentSearchPoint.value.lat, currentSearchPoint.value.lng], 14)
-      renderCenterAndRadius()
-      renderLeadMarkers()
-      recenterMap()
-    }
+    leads.value = generateRealisticMock(searchKeyword.value, locQuery, geoLat, geoLng)
+  }
 
-    isSearching.value = false
-    showToast(`Ditemukan ${leads.value.length} tempat di ${searchLocation.value}`)
-  }, 350)
+  if (leafletMap) {
+    leafletMap.setView([currentSearchPoint.value.lat, currentSearchPoint.value.lng], 14)
+    renderCenterAndRadius()
+    renderLeadMarkers()
+    recenterMap()
+  }
+
+  isSearching.value = false
+  showToast(`Ditemukan ${leads.value.length} tempat di ${searchLocation.value}`)
 }
 
 const applyExample = (item) => {
@@ -1107,6 +1176,96 @@ const handleKeydown = (e) => {
   }
 }
 
+// Geolocation function for real user location
+const getUserCurrentLocation = (isUserTriggered = false) => {
+  if (!navigator.geolocation) {
+    if (isUserTriggered) {
+      showToast('Browser Anda tidak mendukung deteksi lokasi.')
+    }
+    return
+  }
+
+  isLocating.value = true
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const lat = position.coords.latitude
+      const lng = position.coords.longitude
+      userLocationCoords.value = { lat, lng }
+
+      let resolvedAddress = ''
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
+          { headers: { 'Accept': 'application/json' } }
+        )
+        if (res.ok) {
+          const data = await res.json()
+          if (data && data.address) {
+            const addr = data.address
+            const local = addr.suburb || addr.neighbourhood || addr.village || addr.quarter || addr.residential
+            const city = addr.city || addr.town || addr.municipality || addr.city_district || addr.county
+            if (local && city) {
+              resolvedAddress = `${local}, ${city}`
+            } else if (city) {
+              resolvedAddress = city
+            } else if (local) {
+              resolvedAddress = local
+            } else if (data.display_name) {
+              resolvedAddress = data.display_name.split(',').slice(0, 2).join(', ').trim()
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Reverse geocoding error:', err)
+      }
+
+      if (!resolvedAddress) {
+        resolvedAddress = `Lokasi Riil (${lat.toFixed(4)}, ${lng.toFixed(4)})`
+      }
+
+      searchLocation.value = resolvedAddress
+      currentSearchPoint.value = {
+        name: resolvedAddress,
+        lat,
+        lng
+      }
+
+      // Generate leads around real user coordinates
+      leads.value = generateRealisticMock(searchKeyword.value, resolvedAddress, lat, lng)
+
+      if (leafletMap) {
+        leafletMap.setView([lat, lng], 14, { animate: true })
+        renderCenterAndRadius()
+        renderLeadMarkers()
+      }
+
+      isLocating.value = false
+      showToast(isUserTriggered ? `Lokasi diperbarui ke: ${resolvedAddress}` : `Lokasi riil Anda terdeteksi: ${resolvedAddress}`)
+    },
+    (error) => {
+      isLocating.value = false
+      console.warn('Geolocation error:', error)
+      if (isUserTriggered) {
+        let errMessage = 'Gagal mendeteksi lokasi GPS.'
+        if (error.code === 1) {
+          errMessage = 'Izin akses lokasi ditolak oleh browser.'
+        } else if (error.code === 2) {
+          errMessage = 'Posisi GPS sedang tidak tersedia.'
+        } else if (error.code === 3) {
+          errMessage = 'Permintaan waktu lokasi habis (timeout).'
+        }
+        showToast(errMessage)
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 60000
+    }
+  )
+}
+
 onMounted(() => {
   const defaultKey = 'tukang cukur_cipayung depok'
   const defaultData = MOCK_DATASETS[defaultKey]
@@ -1115,6 +1274,8 @@ onMounted(() => {
 
   nextTick(() => {
     initMap()
+    // Otomatis pakai posisi real saya sebagai default location
+    getUserCurrentLocation(false)
   })
 
   window.addEventListener('resize', handleWindowResize)
@@ -1229,6 +1390,70 @@ onBeforeUnmount(() => {
   font-size: 12px;
   font-weight: 600;
   color: var(--color-ink);
+}
+
+.field-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--color-brand);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s ease;
+}
+
+.btn-text-link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.btn-text-link:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.btn-input-gps {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 6px;
+  color: var(--color-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.btn-input-gps:hover:not(:disabled) {
+  color: var(--color-brand);
+  background: var(--color-border);
+}
+
+.btn-input-gps:disabled {
+  cursor: wait;
+}
+
+.gps-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-brand);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 .input-wrap {
@@ -2027,6 +2252,54 @@ onBeforeUnmount(() => {
   background: #2C3E50;
   border: 2px solid #FFFFFF;
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+:deep(.map-pin-user-location) {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.map-pin-user-location .user-pulse) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(33, 150, 243, 0.45);
+  animation: user-gps-pulse 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+:deep(.map-pin-user-location .user-dot) {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 14px;
+  height: 14px;
+  background: #1976D2;
+  border: 2.5px solid #FFFFFF;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  z-index: 2;
+}
+
+@keyframes user-gps-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
 }
 
 :deep(.map-lead-marker) {
