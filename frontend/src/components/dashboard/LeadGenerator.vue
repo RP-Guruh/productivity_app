@@ -332,8 +332,19 @@
               </td>
             </tr>
 
+            <!-- Baris Loading saat sedang scraping secara live -->
+            <tr v-if="isSearching">
+              <td colspan="9" class="cell-empty">
+                <div class="empty-state-box">
+                  <div class="scraper-live-spinner"></div>
+                  <p style="font-weight: 600; color: var(--color-ink); margin-bottom: 4px; margin-top: 12px;">Sedang Mengambil Data Riil dari Google Maps...</p>
+                  <p style="font-size: 12px; color: var(--color-muted); max-width: 440px; margin: 0 auto;">Bot Playwright sedang membuka Google Maps untuk mengekstrak tempat usaha terverifikasi secara langsung. Mohon tunggu beberapa detik.</p>
+                </div>
+              </td>
+            </tr>
+
             <!-- Baris Kosong jika belum ada pencarian atau hasil kosong -->
-            <tr v-if="leads.length === 0">
+            <tr v-else-if="leads.length === 0">
               <td colspan="9" class="cell-empty">
                 <div class="empty-state-box">
                   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-muted); margin-bottom: 8px;">
@@ -456,7 +467,6 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { REAL_GMAPS_CIPAYUNG_LEADS } from '../../data/realGmapsLeads.js'
 
 const emit = defineEmits(['save-to-notes'])
 
@@ -513,44 +523,22 @@ const calculateDistanceKm = (lat1, lon1, lat2, lon2) => {
   return R * c
 }
 
-// Menghubungkan dan menghitung data riil 111 tempat usaha Google Maps hasil scraper
-const loadRealLeads = (centerLat, centerLng, radiusKm = 0, keywordFilter = '') => {
-  const q = (keywordFilter || '').toLowerCase().trim()
+const leads = ref([])
 
-  let results = REAL_GMAPS_CIPAYUNG_LEADS.map(item => {
-    const dist = calculateDistanceKm(centerLat, centerLng, item.lat, item.lng)
+// Hitung ulang jarak tempat usaha terhadap titik pusat pencarian
+const recalculateLeadDistances = (centerLat, centerLng) => {
+  leads.value = leads.value.map(item => {
+    const itemLat = item.lat || centerLat
+    const itemLng = item.lng || centerLng
+    const dist = calculateDistanceKm(centerLat, centerLng, itemLat, itemLng)
     const formattedKm = parseFloat(dist.toFixed(2))
     return {
       ...item,
       distanceKm: formattedKm,
       distanceText: formattedKm < 1 ? `${Math.round(formattedKm * 1000)} m` : `${formattedKm.toFixed(1).replace('.', ',')} km`
     }
-  })
-
-  // Saring jika user mencari kata kunci spesifik
-  if (q && q !== 'tukang cukur' && q !== 'semua hasil' && q !== 'semua') {
-    results = results.filter(item => 
-      item.name.toLowerCase().includes(q) ||
-      item.address.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q) ||
-      item.features.toLowerCase().includes(q)
-    )
-  }
-
-  // Saring berdasarkan radius (jika > 0)
-  if (radiusKm && radiusKm > 0) {
-    const withinRadius = results.filter(item => item.distanceKm <= radiusKm)
-    if (withinRadius.length > 0) {
-      results = withinRadius
-    }
-  }
-
-  // Urutkan dari tempat yang paling dekat dengan posisi pengguna / pusat pencarian
-  results.sort((a, b) => a.distanceKm - b.distanceKm)
-  return results
+  }).sort((a, b) => a.distanceKm - b.distanceKm)
 }
-
-const leads = ref([])
 
 // Computed Metrics
 const filteredLeads = computed(() => {
@@ -709,15 +697,7 @@ const renderLeadMarkers = () => {
 const onRadiusChange = () => {
   if (radiusCircleLayer && hasSearched.value) {
     radiusCircleLayer.setRadius((searchRadius.value || 5) * 1000)
-  }
-  if (hasSearched.value) {
-    leads.value = loadRealLeads(
-      currentSearchPoint.value.lat,
-      currentSearchPoint.value.lng,
-      searchRadius.value,
-      searchKeyword.value
-    )
-    renderLeadMarkers()
+    recenterMap()
   }
 }
 
@@ -760,8 +740,10 @@ const handleSearch = async () => {
   isSearching.value = true
   hasSearched.value = true
   selectedLead.value = null
+  leads.value = [] // Kosongkan hasil sebelumnya saat sedang mencari
 
   const locQuery = searchLocation.value.trim()
+  const keyQuery = searchKeyword.value.trim()
   let geoLat = currentSearchPoint.value.lat
   let geoLng = currentSearchPoint.value.lng
   let pointName = locQuery || 'Sekitar Lokasi'
@@ -770,7 +752,7 @@ const handleSearch = async () => {
     geoLat = userLocationCoords.value.lat
     geoLng = userLocationCoords.value.lng
     pointName = currentSearchPoint.value.name
-  } else if (!locQuery.toLowerCase().includes('cipayung')) {
+  } else {
     try {
       const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locQuery)}&limit=1`, {
         headers: { 'Accept': 'application/json' }
@@ -786,10 +768,6 @@ const handleSearch = async () => {
     } catch (e) {
       // fallback
     }
-  } else {
-    geoLat = -6.4255
-    geoLng = 106.8150
-    pointName = 'Cipayung, Depok'
   }
 
   currentSearchPoint.value = {
@@ -798,18 +776,57 @@ const handleSearch = async () => {
     lng: geoLng
   }
 
-  // Load real Google Maps leads calculated from this center
-  leads.value = loadRealLeads(geoLat, geoLng, searchRadius.value, searchKeyword.value)
-
   if (leafletMap) {
     leafletMap.setView([geoLat, geoLng], 14)
     renderCenterAndRadius()
-    renderLeadMarkers()
-    recenterMap()
   }
 
-  isSearching.value = false
-  showToast(`Ditemukan ${leads.value.length} tempat riil Google Maps di ${pointName}`)
+  try {
+    showToast(`Bot Google Maps aktif: Mencari "${keyQuery}" di ${pointName}...`)
+
+    // Request ke Live API Playwright Scraper
+    const apiUrl = `/api/leads/search?keyword=${encodeURIComponent(keyQuery)}&location=${encodeURIComponent(locQuery)}&limit=25`
+    const res = await fetch(apiUrl)
+
+    if (res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) {
+        // Hitung jarak riil terhadap titik pusat yang aktif
+        leads.value = data.map(item => {
+          let itemLat = item.lat
+          let itemLng = item.lng
+          if (!itemLat || !itemLng) {
+            itemLat = geoLat
+            itemLng = geoLng
+          }
+          const dist = calculateDistanceKm(geoLat, geoLng, itemLat, itemLng)
+          const formattedKm = parseFloat(dist.toFixed(2))
+          return {
+            ...item,
+            lat: itemLat,
+            lng: itemLng,
+            distanceKm: formattedKm,
+            distanceText: formattedKm < 1 ? `${Math.round(formattedKm * 1000)} m` : `${formattedKm.toFixed(1).replace('.', ',')} km`
+          }
+        }).sort((a, b) => a.distanceKm - b.distanceKm)
+
+        showToast(`Berhasil! Ditemukan ${leads.value.length} tempat riil dari Google Maps.`)
+      } else {
+        showToast('Tidak ada tempat yang ditemukan untuk pencarian ini.')
+      }
+    } else {
+      showToast('Gagal menghubungi live scraper API.')
+    }
+  } catch (err) {
+    console.error('Live search error:', err)
+    showToast('Terjadi kesalahan saat memproses live scraper.')
+  } finally {
+    isSearching.value = false
+    if (leafletMap) {
+      renderLeadMarkers()
+      recenterMap()
+    }
+  }
 }
 
 const exportToCsv = () => {
@@ -1019,9 +1036,9 @@ const getUserCurrentLocation = (isUserTriggered = false) => {
         lng
       }
 
-      // Hanya hitung ulang data jika pengguna sudah pernah menekan Cari
-      if (hasSearched.value) {
-        leads.value = loadRealLeads(lat, lng, searchRadius.value, searchKeyword.value)
+      // Hanya hitung ulang jarak data jika ada hasil pencarian
+      if (hasSearched.value && leads.value.length > 0) {
+        recalculateLeadDistances(lat, lng)
       }
 
       if (leafletMap) {
@@ -2267,6 +2284,16 @@ onBeforeUnmount(() => {
   0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
   70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
   100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.scraper-live-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(16, 185, 129, 0.2);
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
 }
 
 @media (max-width: 768px) {
