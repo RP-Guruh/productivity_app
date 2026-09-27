@@ -94,14 +94,14 @@ async function scrapeLive(keyword, location, limit = 20) {
       // If feed not found, maybe single result or no results
     }
 
-    // Scroll 2-3 times quickly to load initial items up to limit
-    for (let s = 0; s < 3; s++) {
+    // Scroll cepat untuk memuat item hingga batas limit yang diminta
+    for (let s = 0; s < 5; s++) {
       const currentCount = await page.locator('[role="article"], .Nv2PK').count();
       if (currentCount >= limit) break;
 
       if (await feed.count() > 0) {
         await feed.evaluate(el => el.scrollBy(0, 1500));
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(900);
       }
     }
 

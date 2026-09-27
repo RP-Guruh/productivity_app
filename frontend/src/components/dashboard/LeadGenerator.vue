@@ -523,11 +523,38 @@ const calculateDistanceKm = (lat1, lon1, lat2, lon2) => {
   return R * c
 }
 
+const allScrapedLeads = ref([])
 const leads = ref([])
+
+// Terapkan penyaringan ketat berdasarkan radius yang dipilih pengguna
+const applyRadiusFilter = (showFeedback = false) => {
+  const maxRadius = Number(searchRadius.value) || 0
+  if (maxRadius > 0) {
+    // Saring ketat: hanya data dengan jarak <= radius yang akan ditampilkan
+    leads.value = allScrapedLeads.value.filter(item => item.distanceKm <= maxRadius)
+    if (showFeedback) {
+      if (leads.value.length > 0) {
+        showToast(`Ditemukan ${leads.value.length} tempat dalam radius ${maxRadius} km.`)
+      } else if (allScrapedLeads.value.length > 0) {
+        showToast(`Tidak ada tempat dalam radius ${maxRadius} km (terdekat: ${allScrapedLeads.value[0].distanceText}). Silakan naikkan pilihan radius.`)
+      }
+    }
+  } else {
+    leads.value = [...allScrapedLeads.value]
+    if (showFeedback && leads.value.length > 0) {
+      showToast(`Menampilkan semua ${leads.value.length} tempat hasil pencarian.`)
+    }
+  }
+
+  if (leafletMap) {
+    renderLeadMarkers()
+    recenterMap()
+  }
+}
 
 // Hitung ulang jarak tempat usaha terhadap titik pusat pencarian
 const recalculateLeadDistances = (centerLat, centerLng) => {
-  leads.value = leads.value.map(item => {
+  allScrapedLeads.value = allScrapedLeads.value.map(item => {
     const itemLat = item.lat || centerLat
     const itemLng = item.lng || centerLng
     const dist = calculateDistanceKm(centerLat, centerLng, itemLat, itemLng)
@@ -538,6 +565,8 @@ const recalculateLeadDistances = (centerLat, centerLng) => {
       distanceText: formattedKm < 1 ? `${Math.round(formattedKm * 1000)} m` : `${formattedKm.toFixed(1).replace('.', ',')} km`
     }
   }).sort((a, b) => a.distanceKm - b.distanceKm)
+
+  applyRadiusFilter(false)
 }
 
 // Computed Metrics
@@ -581,6 +610,13 @@ const initMap = () => {
   currentTileLayer = L.tileLayer(OSM_TILE_URL, OSM_TILE_OPTIONS).addTo(leafletMap)
 
   leadMarkersGroup = L.layerGroup().addTo(leafletMap)
+
+  // Klik di area peta kosong akan menutup panel rincian tempat
+  leafletMap.on('click', (e) => {
+    if (!e.originalEvent?.target?.closest('.leaflet-marker-icon') && !e.originalEvent?.target?.closest('.active-place-card')) {
+      selectedLead.value = null
+    }
+  })
 
   renderCenterAndRadius()
   renderLeadMarkers()
@@ -664,30 +700,22 @@ const renderLeadMarkers = () => {
 
     const marker = L.marker([lead.lat, lead.lng], { icon: leadIcon })
 
-    const popupHtml = `
-      <div class="map-popup">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-          <span class="popup-cat">${lead.category}</span>
-          <span style="font-size: 10px; color: #059669; font-weight: 600;">✓ Data Riil</span>
-        </div>
-        <h4 class="popup-title">${lead.name}</h4>
-        <p class="popup-addr">${lead.address}</p>
-        <div class="popup-meta">
-          <span>★ ${lead.rating} (${lead.reviews} ulasan)</span>
-          <span>•</span>
-          <span>${lead.distanceText}</span>
-        </div>
-        <div style="display: flex; gap: 6px; margin-top: 8px;">
-          <a href="https://wa.me/${lead.phoneRaw}" target="_blank" class="popup-wa-btn" style="flex: 1;">
-            WhatsApp
-          </a>
-          ${lead.maps_url ? `<a href="${lead.maps_url}" target="_blank" rel="noopener noreferrer" class="popup-gmaps-btn" style="flex: 1; text-align: center;">Google Maps ↗</a>` : ''}
-        </div>
-      </div>
-    `
-    marker.bindPopup(popupHtml)
+    // Tooltip rapi saat hover (tidak ada popup ganda yang bertabrakan dengan kartu detail)
+    marker.bindTooltip(`
+      <div style="font-weight: 600; font-size: 12px; color: #0f172a; line-height: 1.3;">${lead.name}</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${lead.category} • ${lead.distanceText}</div>
+    `, {
+      direction: 'top',
+      offset: [0, -22],
+      opacity: 0.96,
+      className: 'custom-map-tooltip'
+    })
+
     marker.on('click', () => {
       selectedLead.value = lead
+      if (leafletMap) {
+        leafletMap.panTo([lead.lat, lead.lng], { animate: true })
+      }
     })
 
     leadMarkersGroup.addLayer(marker)
@@ -697,6 +725,10 @@ const renderLeadMarkers = () => {
 const onRadiusChange = () => {
   if (radiusCircleLayer && hasSearched.value) {
     radiusCircleLayer.setRadius((searchRadius.value || 5) * 1000)
+  }
+  if (allScrapedLeads.value.length > 0) {
+    applyRadiusFilter(true)
+  } else if (hasSearched.value) {
     recenterMap()
   }
 }
@@ -784,15 +816,15 @@ const handleSearch = async () => {
   try {
     showToast(`Bot Google Maps aktif: Mencari "${keyQuery}" di ${pointName}...`)
 
-    // Request ke Live API Playwright Scraper
-    const apiUrl = `/api/leads/search?keyword=${encodeURIComponent(keyQuery)}&location=${encodeURIComponent(locQuery)}&limit=25`
+    // Request ke Live API Playwright Scraper (ambil hingga 30 data tempat Google Maps)
+    const apiUrl = `/api/leads/search?keyword=${encodeURIComponent(keyQuery)}&location=${encodeURIComponent(locQuery)}&limit=30`
     const res = await fetch(apiUrl)
 
     if (res.ok) {
       const data = await res.json()
       if (Array.isArray(data) && data.length > 0) {
-        // Hitung jarak riil terhadap titik pusat yang aktif
-        leads.value = data.map(item => {
+        // Hitung jarak riil tiap tempat terhadap titik pusat pencarian
+        const mapped = data.map(item => {
           let itemLat = item.lat
           let itemLng = item.lng
           if (!itemLat || !itemLng) {
@@ -810,8 +842,11 @@ const handleSearch = async () => {
           }
         }).sort((a, b) => a.distanceKm - b.distanceKm)
 
-        showToast(`Berhasil! Ditemukan ${leads.value.length} tempat riil dari Google Maps.`)
+        allScrapedLeads.value = mapped
+        applyRadiusFilter(true)
       } else {
+        allScrapedLeads.value = []
+        leads.value = []
         showToast('Tidak ada tempat yang ditemukan untuk pencarian ini.')
       }
     } else {
@@ -2180,6 +2215,20 @@ onBeforeUnmount(() => {
     filter: brightness(1.2);
     box-shadow: 0 0 14px rgba(239, 68, 68, 0.9), 0 2px 8px rgba(0, 0, 0, 0.35);
   }
+}
+
+:deep(.leaflet-tooltip.custom-map-tooltip) {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  padding: 6px 10px;
+  font-family: inherit;
+}
+
+:deep(.leaflet-tooltip-top.custom-map-tooltip:before) {
+  border-top-color: rgba(255, 255, 255, 0.96);
 }
 
 :deep(.map-popup) {
